@@ -13,12 +13,15 @@ Manifest:
 ## The Task
 This Jenkins plugin requires a few inputs:
 
-* **nickanme** (for the Message From)
-* **api_token** (Jenkins API Token)
-* **tags** (list of tags used in the message)
-* **message** (message to be posted)
+
+
+* **host** (hostname of the jenkins server)
+* **port** (port jenkins is bound to)
+* **use_ssl** (to https or not)
+* **web_path** (context path of jenkins app)
+* **scm_url** (where do we get some code?)
+* **steps** (what do we do to the code?)
 
 
 ## License
 Apache 2.0 License: <http://www.apache.org/licenses/LICENSE-2.0.html>
-
