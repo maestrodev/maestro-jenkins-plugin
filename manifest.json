@@ -1,0 +1,28 @@
+[{
+    "name" : "jenkins",
+    "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[job] Name Of The Jenkins Job<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
+    "license" : "Apache 2.0",
+    "author": "Kelly Plummer",
+    "version": "1.0-SNAPSHOT",
+    "class": "MaestroDev::JenkinsWorker",
+    "type":"ruby",
+    "dependencies":[
+  		{
+  			"name" : "jenkins",
+  			"version" : "0.6.8",
+  			"source" : "http://rubygems.org/"
+  		}
+  	],
+    "task":{
+      "command" : "/jenkins/build",    
+      "inputs" :  {
+		  "host":{"required":true,"type":"String","value":"localhost"},
+		  "port":{"required":true,"type":"Integer","value":8080},
+		  "job":{"required":true,"type":"String","value":""},
+		  "scm_url":{"required":true,"type":"Url","value":""},
+		  "steps":{"required":true,"type":"Array","value":[]}
+	  },
+      "outputs" : {"output" : {"type" : "String"}},
+      "tool_name":"Build"
+    }
+}]
