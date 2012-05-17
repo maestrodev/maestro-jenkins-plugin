@@ -17,8 +17,10 @@
       "command" : "/jenkins/build",    
       "inputs" :  {
 		  "host":{"required":true,"type":"String","value":"localhost"},
-		  "port":{"required":true,"type":"Integer","value":8080},
+		  "port":{"required":false,"type":"Integer","value":8080},
 		  "job":{"required":true,"type":"String","value":""},
+		  "use_ssl":{"required":true,"type":"Boolean","value":false},
+		  "web_path":{"required":false,"type":"String","value":""},
 		  "scm_url":{"required":true,"type":"Url","value":""},
 		  "steps":{"required":true,"type":"Array","value":[]}
 	  },

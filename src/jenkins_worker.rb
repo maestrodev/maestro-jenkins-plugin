@@ -10,8 +10,16 @@ module MaestroDev
     def setup
       host = workitem['fields']['host']
       port = workitem['fields']['port']
+      use_ssl = workitem['fields']['use_ssl'] || false
+      web_path = workitem['fields']['web_path'] || '/'
+      web_path = '/' + web_path.gsub(/^\//, '')
       
-      Jenkins::Api.setup_base_url(:host => host, :port => port)
+      Jenkins::Api.setup_base_url(
+       :host => host,
+       :port => port, 
+       :ssl => use_ssl,
+       :path => web_path
+       )
     end
     
     def job_exists?(job_name)

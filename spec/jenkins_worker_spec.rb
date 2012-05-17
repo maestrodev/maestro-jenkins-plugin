@@ -65,7 +65,14 @@ describe MaestroDev::JenkinsWorker do
     
     it "should build job with jenkins" do
       
-      workitem = {'fields' => {'job' => 'CEE Buildaroo', 'scm_url' => 'http://kellyp:door4rim@github.com/maestrodev/CEE.git', 'steps' => ['bundle', 'rake']}}
+      workitem = {'fields' => {
+         'host' => 'localhost',
+         'web_path' => 'jenkins',
+         'use_ssl' => true,
+         'job' => 'CEE Buildaroo',
+         'scm_url' => 'http://kellyp:door4rim@github.com/maestrodev/CEE.git',
+         'steps' => ['bundle', 'rake']
+      }}
 
       
       if @stub_jenkins
@@ -95,7 +102,6 @@ describe MaestroDev::JenkinsWorker do
        end
   
        @participant.stubs(:workitem => workitem)
-  
        @participant.build
        
        workitem['fields']['__error__'].should eql("Jenkins job failed to start")
