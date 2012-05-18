@@ -1,5 +1,5 @@
 [{
-    "name" : "jenkins",
+    "name" : "jenkins plugin",
     "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[job] Name Of The Jenkins Job<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
     "license" : "Apache 2.0",
     "author": "Kelly Plummer",
@@ -14,7 +14,7 @@
   		}
   	],
     "task":{
-      "command" : "/jenkins/build",    
+      "command" : "/jenkins-plugin/build",    
       "inputs" :  {
 		  "host":{"required":true,"type":"String","value":"localhost"},
 		  "port":{"required":false,"type":"Integer","value":8080},
