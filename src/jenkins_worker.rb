@@ -4,12 +4,16 @@ require 'maestro_agent'
 
 require File.join(File.dirname(__FILE__),'..','monkey','job_config_builder') 
 
+
 module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
 
     def setup
       host = workitem['fields']['host']
       port = workitem['fields']['port']
+      username = workitem['fields']['username']
+      password = workitem['fields']['password']      
+      
       use_ssl = workitem['fields']['use_ssl'] || false
       web_path = workitem['fields']['web_path'] || '/'
       web_path = '/' + web_path.gsub(/^\//, '')
@@ -18,6 +22,8 @@ module MaestroDev
        :host => host,
        :port => port, 
        :ssl => use_ssl,
+       :username => username,
+       :password => password,
        :path => web_path
        )
     end
@@ -99,42 +105,56 @@ module MaestroDev
       begin
         setup
         
-        
-        Maestro.log.debug "Parsing Steps From #{workitem['fields']['steps']}"
-        write_output "Parsing Steps From #{workitem['fields']['steps']}\n"
-
-        steps = workitem['fields']['steps'] 
-        steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
-
-        
         job_exists_already = job_exists?(job_name)
-        Maestro.log.debug "Creating Job #{job_name}, None Found" unless job_exists_already
-        write_output "Creating Job #{job_name}, None Found\n" unless job_exists_already
-        create_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) unless job_exists_already
-        update_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) if job_exists_already
+        
+        raise "Job Not Found And No Override Allowed" if !job_exists_already and !workitem['fields']['override_existing']
+        
+        if(workitem['fields']['override_existing'])
+          Maestro.log.debug "Creating Job #{job_name}, None Found" unless job_exists_already
+          write_output "Creating Job #{job_name}, None Found\n" unless job_exists_already
+          Maestro.log.debug "Parsing Steps From #{workitem['fields']['steps']}"
+          write_output "Parsing Steps From #{workitem['fields']['steps']}\n"
+
+          steps = workitem['fields']['steps'] 
+          steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
+          options = {}
+          options[:steps] = steps unless steps.nil?
+          options[:scm] = steps unless workitem['fields']['scm_url'].nil?
+          create_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) unless job_exists_already
+          update_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) if job_exists_already
+        end
         
         build_number = get_next_build_number(job_name)
-        Maestro.log.debug "Previous Build Number Is #{build_number}"
-        write_output "Previous Build Number Is #{build_number}\n"
-        
-        success = Jenkins::Api.build_job(URI.encode(job_name))
-        Maestro.log.debug "Jenkins Job Started #{success ? "" : "Not"} Successfully"
-        write_output "Jenkins Job Started #{success ? "" : "Not "}Successfully\n"
+
+        success = false
+        begin
+          response = get_plain "/job/#{job_name}/build"
+          success = response.code == "200"
+        rescue Exception => e
+          puts e, e.backtrace
+        end
+
+        Maestro.log.debug "Jenkins Job Did #{success ? "" : "Not"} Start Successfully"
+        write_output "Jenkins Job Did #{success ? "" : "Not"} Start Successfully\n"
         
         if !success
           workitem['fields']['__error__'] = "Jenkins job failed to start" 
           return
         end
 
+        Maestro.log.debug "Build Number Is #{build_number}"
+        write_output "Build Number Is #{build_number}\n"
+
         console = ""
 
         begin
           begin
             details = get_build_details_for_build(job_name, build_number)
+            
             write_output find_new_console(job_name,build_number, console)
 
             console = get_build_console_for_build(job_name,build_number)
-          rescue Timeout::Error => te
+          rescue Exception => te
             if defined? failures
               failures += 1
             else
@@ -142,7 +162,7 @@ module MaestroDev
             end
             raise if failures > 5
           end
-          sleep(2)
+          sleep(5)
 
         end while details.is_a? FalseClass  or (details.is_a?Hash and details["building"])
 
@@ -154,13 +174,12 @@ module MaestroDev
 
 
         Maestro.log.debug "Jenkins Job Completed #{success ? "" : "Not"} Successfully"
-        write_output "Jenkins Job Completed #{success ? "" : "Not "}Successfully\n"
+        write_output "Jenkins Job Completed #{success ? "" : "Not"}Successfully\n"
         
         workitem['fields']['__error__'] = "Jenkins job failed" if !success
         workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
 
       rescue Exception => e
-        puts e, e.backtrace
         message = "Jenkins job failed "
         if e.message.match("Invalid JSON string")
           message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host'] || config['jenkins']['host']} Port = #{ workitem['fields']['port'] || config['jenkins']['port']}"
@@ -168,7 +187,7 @@ module MaestroDev
           message += e.message
         end
 
-        workitem['fields']['__error__'] = "Jenkins job failed #{message}"
+        workitem['fields']['__error__'] = message
         return
       end
       Maestro.log.debug "Finished Processing Jenkins Job"
@@ -180,10 +199,21 @@ module MaestroDev
     
     # Helper for GET that don't barf at Jenkins's crappy API responses
     def get_plain(path, options = {})
-      
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
-      res = Net::HTTP.start(uri.host, uri.port) { |http| http.get(URI.escape(path), options) }
+      res = Net::HTTP.start(uri.host, uri.port) { |http| 
+        req = Net::HTTP::Get.new(URI.escape(path))
+          req.basic_auth(get_field('username'),get_field('password')) 
+          response = http.request(req)
+          case response
+            when Net::HTTPSuccess     then 
+              return response
+            when Net::HTTPRedirection then 
+              get_plain(response['location'])
+            else
+              response.error!
+          end
+      }
     end
 
 
@@ -191,12 +221,15 @@ module MaestroDev
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
       res = Net::HTTP.start(uri.host, uri.port) do |http|
-        
-        if RUBY_VERSION =~ /1.8/
+        # if RUBY_VERSION =~ /1.8/
+          req = Net::HTTP::Post.new(URI.escape(path))
+          req.basic_auth(get_field('username'),get_field('password')) 
+          response = http.request(req)
+
           http.post(URI.escape(path), options)
-        else
-          http.post(URI.escape(path), data, options)
-        end
+        # else
+        #   http.post(URI.escape(path), data, options)
+        # end
       end
     end
     

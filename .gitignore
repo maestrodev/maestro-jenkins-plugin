@@ -1,3 +1,4 @@
 .bundle
+vendor
 package
 maestro-jenkins-plugin-*.zip

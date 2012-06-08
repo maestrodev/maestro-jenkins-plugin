@@ -39,7 +39,7 @@ describe MaestroDev::JenkinsWorker do
     
     it "should return true if job exists" do
       if @stub_jenkins
-        Jenkins::Api.expects(:job_names => ['test job'])
+        Jenkins::Api.stubs(:job_names => ['test job'])
       end
       @participant.job_exists?('test job').should be_true
     end
@@ -47,7 +47,7 @@ describe MaestroDev::JenkinsWorker do
     it "should delete job" do
       if @stub_jenkins
         @participant.expects(:post_plain)
-        Jenkins::Api.expects(:job_names => [])
+        Jenkins::Api.stubs(:job_names => [])
       end
       @participant.delete_job('test job')
       @participant.job_exists?('test job').should be_false
@@ -71,14 +71,18 @@ describe MaestroDev::JenkinsWorker do
          'use_ssl' => true,
          'job' => 'CEE Buildaroo',
          'scm_url' => 'http://kellyp:door4rim@github.com/maestrodev/CEE.git',
-         'steps' => ['bundle', 'rake']
+         'steps' => ['bundle', 'rake'],
+         'override_existing' => true
       }}
 
       
       if @stub_jenkins
         Jenkins::Api.stubs(:job_names => [])
         Jenkins::Api.expects(:create_job => [])
-        Jenkins::Api.stubs(:build_job => true)
+        response = mock
+        response.stub(:code => "200")
+        @participant.stubs(:get_plain => response)
+        # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})        
       end
@@ -91,7 +95,8 @@ describe MaestroDev::JenkinsWorker do
     end
     
     it "should supply error when job fails to start" do
-       workitem = {'fields' => {'job' => 'stomp'}}
+       workitem = {'fields' => {'job' => 'stomp',
+         'override_existing' => true}}
   
        Jenkins::Api.stubs(:build_job => false)
        if @stub_jenkins
@@ -108,12 +113,17 @@ describe MaestroDev::JenkinsWorker do
      end
   
      it "should supply error when job fails" do
-       workitem = {'fields' => {'job' => 'stomp'}}
+       workitem = {'fields' => {'job' => 'stomp',
+                  'override_existing' => true
+         }}
        
        #all stubs
        Jenkins::Api.stubs(:job_names => [])
        Jenkins::Api.expects(:create_job => [])
-       Jenkins::Api.stubs(:build_job => true)
+       response = mock
+       response.stub(:code => "200")
+       @participant.stubs(:get_plain => response)
+
        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
   

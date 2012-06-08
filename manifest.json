@@ -1,6 +1,6 @@
 [{
     "name" : "jenkins plugin",
-    "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[job] Name Of The Jenkins Job<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
+    "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[username] Username for jenkins server<br>[password] Password for jenkins server<br>[job] Name Of The Jenkins Job<br>[web_path] context path of the jenkins server<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
     "license" : "Apache 2.0",
     "author": "Kelly Plummer",
     "version": "1.0-SNAPSHOT",
@@ -14,15 +14,18 @@
   		}
   	],
     "task":{
-      "command" : "/jenkins-plugin/build",    
+      "command" : "/jenkinsplugin/build",    
       "inputs" :  {
 		  "host":{"required":true,"type":"String","value":"localhost"},
 		  "port":{"required":false,"type":"Integer","value":8080},
 		  "job":{"required":true,"type":"String","value":""},
+		  "username":{"required":false,"type":"String","value":""},
+		  "password":{"required":false,"type":"Password","value":""},
 		  "use_ssl":{"required":true,"type":"Boolean","value":false},
 		  "web_path":{"required":false,"type":"String","value":""},
-		  "scm_url":{"required":true,"type":"Url","value":""},
-		  "steps":{"required":true,"type":"Array","value":[]}
+		  "scm_url":{"required":false,"type":"Url","value":""},
+		  "steps":{"required":false,"type":"Array","value":[]},
+		  "override_existing":{"required":true,"type":"Boolean","value":false}
 	  },
       "outputs" : {"output" : {"type" : "String"}},
       "tool_name":"Build"
