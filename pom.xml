@@ -39,6 +39,7 @@
           <groupId>${project.groupId}</groupId>
           <artifactId>${project.artifactId}</artifactId>
           <version>${project.version}</version>
+          <classifier>bin</classifier>
           <url>${repository.url}</url>
           <file>maestro-jenkins-plugin-${project.version}.zip</file>
           <uniqueVersion>true</uniqueVersion>
