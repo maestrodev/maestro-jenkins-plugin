@@ -180,7 +180,7 @@ module MaestroDev
         workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
 
       rescue Exception => e
-        Maestro.log.error e, e.backtrace.join("\n")
+        Maestro.log.error "#{e}\n #{e.backtrace.join("\n")}"
         message = "Jenkins job failed "
         if e.message.match("Invalid JSON string")
           message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host'] || config['jenkins']['host']} Port = #{ workitem['fields']['port'] || config['jenkins']['port']}"
