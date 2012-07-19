@@ -105,7 +105,7 @@ describe MaestroDev::JenkinsWorker do
          Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
          Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})        
        end
-  
+       @participant.stubs(:build_job => false)
        @participant.stubs(:workitem => workitem)
        @participant.build
        
@@ -126,7 +126,7 @@ describe MaestroDev::JenkinsWorker do
 
        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
-  
+       @participant.stubs(:build_job => true)
        @participant.expects(:get_build_console_for_build => "").at_least_once
        @participant.expects(:workitem).at_least_once.returns(workitem)
        @participant.build

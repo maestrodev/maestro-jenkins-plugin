@@ -97,6 +97,11 @@ module MaestroDev
       Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(new_console.slice(size, new_size))
     end
 
+    def build_job(job_name)
+      response = get_plain "#{@web_path}/job/#{job_name}/build"
+      response.code == "200"
+    end
+
     def build
 
       Maestro.log.info "Starting JENKINS participant..."
@@ -130,8 +135,7 @@ module MaestroDev
         
         success = false
 
-        response = get_plain "#{@web_path}/job/#{job_name}/build"
-        success = response.code == "200"
+        success = build_job(job_name)
 
 
         Maestro.log.debug "Jenkins Job Did #{success ? "" : "Not"} Start Successfully"
@@ -172,9 +176,8 @@ module MaestroDev
 
         success = details['result'] == 'SUCCESS'
 
-
         Maestro.log.debug "Jenkins Job Completed #{success ? "" : "Not"} Successfully"
-        write_output "Jenkins Job Completed #{success ? "" : "Not"}Successfully\n"
+        write_output "Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully\n"
         
         workitem['fields']['__error__'] = "Jenkins job failed" if !success
         workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
