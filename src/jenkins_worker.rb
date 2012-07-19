@@ -8,6 +8,7 @@ require File.join(File.dirname(__FILE__),'..','monkey','job_config_builder')
 module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
 
+
     def setup
       host = workitem['fields']['host']
       port = workitem['fields']['port']
@@ -15,8 +16,8 @@ module MaestroDev
       password = workitem['fields']['password']      
       
       use_ssl = workitem['fields']['use_ssl'] || false
-      web_path = workitem['fields']['web_path'] || '/'
-      web_path = '/' + web_path.gsub(/^\//, '')
+      @web_path = workitem['fields']['web_path'] || '/'
+      @web_path = '/' + @web_path.gsub(/^\//, '').gsub(/\/$/, '')
       
       Jenkins::Api.setup_base_url(
        :host => host,
@@ -24,7 +25,7 @@ module MaestroDev
        :ssl => use_ssl,
        :username => username,
        :password => password,
-       :path => web_path
+       :path => @web_path
        )
     end
     
@@ -33,7 +34,7 @@ module MaestroDev
     end
    
     def delete_job(job_name)
-      post_plain("/job/#{job_name}/doDelete")
+      post_plain("#{@web_path}/job/#{job_name}/doDelete")
     end
 
     def update_job(job_name, options)
@@ -81,7 +82,7 @@ module MaestroDev
     end
     
     def get_build_console_for_build(job_name, build_number)
-      path  = "/job/#{job_name}/#{build_number}/"
+      path  = "#{@web_path}/job/#{job_name}/#{build_number}/"
       path << "consoleText"
       get_plain(path).body
     end
@@ -108,6 +109,7 @@ module MaestroDev
         job_exists_already = job_exists?(job_name)
         
         raise "Job Not Found And No Override Allowed" if !job_exists_already and !workitem['fields']['override_existing']
+        write_output "Job #{job_name} found\n"
         
         if(workitem['fields']['override_existing'])
           Maestro.log.debug "Creating Job #{job_name}, None Found" unless job_exists_already
@@ -125,14 +127,12 @@ module MaestroDev
         end
         
         build_number = get_next_build_number(job_name)
-
+        
         success = false
-        begin
-          response = get_plain "/job/#{job_name}/build"
-          success = response.code == "200"
-        rescue Exception => e
-          puts e, e.backtrace
-        end
+
+        response = get_plain "#{@web_path}/job/#{job_name}/build"
+        success = response.code == "200"
+
 
         Maestro.log.debug "Jenkins Job Did #{success ? "" : "Not"} Start Successfully"
         write_output "Jenkins Job Did #{success ? "" : "Not"} Start Successfully\n"
@@ -180,6 +180,7 @@ module MaestroDev
         workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
 
       rescue Exception => e
+        Maestro.log.error e, e.backtrace.join("\n")
         message = "Jenkins job failed "
         if e.message.match("Invalid JSON string")
           message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host'] || config['jenkins']['host']} Port = #{ workitem['fields']['port'] || config['jenkins']['port']}"
@@ -201,6 +202,7 @@ module MaestroDev
     def get_plain(path, options = {})
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
+      
       res = Net::HTTP.start(uri.host, uri.port) { |http| 
         req = Net::HTTP::Get.new(URI.escape(path))
           req.basic_auth(get_field('username'),get_field('password')) 
@@ -222,7 +224,7 @@ module MaestroDev
       uri = URI.parse Jenkins::Api.base_uri
       res = Net::HTTP.start(uri.host, uri.port) do |http|
         # if RUBY_VERSION =~ /1.8/
-          req = Net::HTTP::Post.new(URI.escape(path))
+          req = Net::HTTP::Post.new(URI.escape(@web_path + path))
           req.basic_auth(get_field('username'),get_field('password')) 
           response = http.request(req)
 
