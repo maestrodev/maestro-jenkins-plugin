@@ -102,13 +102,24 @@ module MaestroDev
       response.code == "200"
     end
 
-    def build
+    def validate_inputs
+      write_output "Validating Inputs\n"
+      if workitem['fields']['port'].nil? or workitem['fields']['port'] == 0
+        workitem['fields']['port'] = workitem['fields']['use_ssl'] ? 443 : 80
+      end
 
-      Maestro.log.info "Starting JENKINS participant..."
-      Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']}"
-      Maestro.log.debug "Beginning Process For Jenkins Job #{job_name}"
-      write_output "Beginning Process For Jenkins Job #{job_name}\n"
+      raise "Missing Field Host" if workitem['fields']['host'].nil? or workitem['fields']['host'].empty?
+      raise "Missing Field Job" if workitem['fields']['job'].nil? or workitem['fields']['job'].empty?
+    end
+
+    def build
       begin
+        Maestro.log.info "Starting JENKINS participant..."
+        validate_inputs
+        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']}"
+        Maestro.log.debug "Beginning Process For Jenkins Job #{job_name}"
+        write_output "Beginning Process For Jenkins Job #{job_name}\n"
+
         setup
         
         job_exists_already = job_exists?(job_name)
@@ -139,7 +150,7 @@ module MaestroDev
 
 
         Maestro.log.debug "Jenkins Job Did #{success ? "" : "Not"} Start Successfully"
-        write_output "Jenkins Job Did #{success ? "" : "Not"} Start Successfully\n"
+        write_output "Jenkins Job #{success ? "Started Successfully" : "Failed To Start"} \n"
         
         if !success
           workitem['fields']['__error__'] = "Jenkins job failed to start" 
@@ -154,7 +165,6 @@ module MaestroDev
         begin
           begin
             details = get_build_details_for_build(job_name, build_number)
-            
             write_output find_new_console(job_name,build_number, console)
 
             console = get_build_console_for_build(job_name,build_number)
@@ -173,8 +183,10 @@ module MaestroDev
         write_output find_new_console(job_name,build_number, console)
 
         console = get_build_console_for_build(job_name,build_number)
-
         success = details['result'] == 'SUCCESS'
+
+        add_link("Build Page", details["url"])
+        add_link("Test Result", "#{details["url"]}testReport")
 
         Maestro.log.debug "Jenkins Job Completed #{success ? "" : "Not"} Successfully"
         write_output "Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully\n"
@@ -186,7 +198,7 @@ module MaestroDev
         Maestro.log.error "#{e}\n #{e.backtrace.join("\n")}"
         message = "Jenkins job failed "
         if e.message.match("Invalid JSON string")
-          message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host'] || config['jenkins']['host']} Port = #{ workitem['fields']['port'] || config['jenkins']['port']}"
+          message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host']} Port = #{ workitem['fields']['port']} Web Path = #{ workitem['fields']['web_path']} "
         else
           message += e.message
         end
@@ -206,8 +218,10 @@ module MaestroDev
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
       
-      res = Net::HTTP.start(uri.host, uri.port) { |http| 
-        req = Net::HTTP::Get.new(URI.escape(path))
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = workitem['fields']['use_ssl']
+      http.start do |http|
+          req = Net::HTTP::Get.new(URI.escape(path))
           req.basic_auth(get_field('username'),get_field('password')) 
           response = http.request(req)
           case response
@@ -218,14 +232,16 @@ module MaestroDev
             else
               response.error!
           end
-      }
+      end
     end
 
 
     def post_plain(path, data = "", options = {})
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
-      res = Net::HTTP.start(uri.host, uri.port) do |http|
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = workitem['fields']['use_ssl']
+      http.start do |http|
         # if RUBY_VERSION =~ /1.8/
           req = Net::HTTP::Post.new(URI.escape(@web_path + path))
           req.basic_auth(get_field('username'),get_field('password')) 

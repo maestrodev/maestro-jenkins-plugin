@@ -95,7 +95,11 @@ describe MaestroDev::JenkinsWorker do
     end
     
     it "should supply error when job fails to start" do
-       workitem = {'fields' => {'job' => 'stomp',
+       workitem = {'fields' => {
+           'host' => 'localhost',
+           'web_path' => 'jenkins',
+           'use_ssl' => true,
+           'job' => 'stomp',
          'override_existing' => true}}
   
        Jenkins::Api.stubs(:build_job => false)
@@ -113,7 +117,12 @@ describe MaestroDev::JenkinsWorker do
      end
   
      it "should supply error when job fails" do
-       workitem = {'fields' => {'job' => 'stomp',
+       workitem = {'fields' => {
+           'host' => 'localhost',
+           'web_path' => 'jenkins',
+           'use_ssl' => true,
+           'job' => 'CEE Buildaroo',
+           'job' => 'stomp',
                   'override_existing' => true
          }}
        
