@@ -1,4 +1,6 @@
 source :rubygems
+source "https://gems.gemfury.com/19mFQpkpgWC8xqPZVizB/"
+
 
 gem 'bundler', '>= 1.0.21'
 gem 'rake'

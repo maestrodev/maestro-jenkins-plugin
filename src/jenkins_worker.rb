@@ -185,8 +185,10 @@ module MaestroDev
         console = get_build_console_for_build(job_name,build_number)
         success = details['result'] == 'SUCCESS'
 
-        add_link("Build Page", details["url"])
-        add_link("Test Result", "#{details["url"]}testReport")
+        if respond_to? :add_link
+          add_link("Build Page", details["url"])
+          add_link("Test Result", "#{details["url"]}testReport")
+        end
 
         Maestro.log.debug "Jenkins Job Completed #{success ? "" : "Not"} Successfully"
         write_output "Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully\n"
