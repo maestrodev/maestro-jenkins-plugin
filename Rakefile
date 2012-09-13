@@ -34,7 +34,7 @@ end
 
 desc "Get dependencies with Bundler"
 task :bundle do
-  system "bundle install package"
+  system "bundle package"
 end
 
 def add_file( zippyfile, dst_dir, f )
