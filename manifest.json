@@ -31,5 +31,16 @@
 	  },
       "outputs" : {"output" : {"type" : "String"}},
       "tool_name":"Build"
-    }
+    },
+    "source_types": [
+    {
+      "name" : "Jenkins",
+      "options" : {
+        "host": "String",
+        "port":"Integer",
+        "username": "String",
+        "password": "Password",
+        "web_path":"String"
+      }
+    }]
 }]
