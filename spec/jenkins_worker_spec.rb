@@ -64,7 +64,6 @@ describe MaestroDev::JenkinsWorker do
   describe 'build()' do
     
     it "should build job with jenkins" do
-      
       workitem = {'fields' => {
          'host' => 'localhost',
          'web_path' => 'jenkins',
@@ -75,7 +74,7 @@ describe MaestroDev::JenkinsWorker do
          'override_existing' => true
       }}
 
-      
+
       if @stub_jenkins
         Jenkins::Api.stubs(:job_names => [])
         Jenkins::Api.expects(:create_job => [])
@@ -84,16 +83,51 @@ describe MaestroDev::JenkinsWorker do
         @participant.stubs(:get_plain => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
-        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})        
+        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
       end
       @participant.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
       @participant.expects(:workitem).at_least_once.returns(workitem)
       @participant.build
-      
+
       workitem['fields']['__error__'].should be_nil
       workitem['fields']['output'].should eql(JOB_CONSOLE)
     end
-    
+
+    it "should build jobs with user defined axes with jenkins" do
+      workitem = {'fields' => {
+          'host' => 'localhost',
+          'web_path' => 'jenkins',
+          'use_ssl' => true,
+          'job' => 'Centerpoint',
+          'scm_url' => 'https://github.com/etiennep/centrepoint/',
+          'override_existing' => true,
+          'user_defined_axes' => ['goal install package'],
+          'label_axes' => ['linux', 'macos'],
+          'steps' => ['ls -la /']
+
+      }}
+
+
+      if @stub_jenkins
+        Jenkins::Api.stubs(:job_names => [])
+        Jenkins::Api.expects(:create_job => [])
+        response = mock
+        response.stub(:code => "200")
+        @participant.stubs(:get_plain => response)
+        # Jenkins::Api.stubs(:build_job => true)
+        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
+        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
+      end
+      @participant.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
+      @participant.expects(:workitem).at_least_once.returns(workitem)
+      @participant.build
+
+      workitem['fields']['__error__'].should be_nil
+      workitem['fields']['output'].should eql(JOB_CONSOLE)
+
+
+    end
+
     it "should supply error when job fails to start" do
        workitem = {'fields' => {
            'host' => 'localhost',
@@ -101,22 +135,22 @@ describe MaestroDev::JenkinsWorker do
            'use_ssl' => true,
            'job' => 'stomp',
          'override_existing' => true}}
-  
+
        Jenkins::Api.stubs(:build_job => false)
        if @stub_jenkins
          Jenkins::Api.expects(:create_job => [])
          Jenkins::Api.stubs(:job_names => [])
          Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
-         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})        
+         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
        end
        @participant.stubs(:build_job => false)
        @participant.stubs(:workitem => workitem)
        @participant.build
-       
+
        workitem['fields']['__error__'].should eql("Jenkins job failed to start")
-     end
-  
-     it "should supply error when job fails" do
+    end
+
+    it "should supply error when job fails" do
        workitem = {'fields' => {
            'host' => 'localhost',
            'web_path' => 'jenkins',
@@ -125,7 +159,7 @@ describe MaestroDev::JenkinsWorker do
            'job' => 'stomp',
                   'override_existing' => true
          }}
-       
+
        #all stubs
        Jenkins::Api.stubs(:job_names => [])
        Jenkins::Api.expects(:create_job => [])
@@ -139,10 +173,10 @@ describe MaestroDev::JenkinsWorker do
        @participant.expects(:get_build_console_for_build => "").at_least_once
        @participant.expects(:workitem).at_least_once.returns(workitem)
        @participant.build
-       
+
        workitem['fields']['__error__'].should eql("Jenkins job failed")
-     end
-     
+    end
+
   end
   
 

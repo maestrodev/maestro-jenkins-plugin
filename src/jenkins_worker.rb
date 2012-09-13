@@ -47,6 +47,8 @@ module MaestroDev
 
     def send_job(job_name, options, update)
       steps = []
+      user_axes = []
+      label_axes = []
       
       Maestro.log.debug "Loading #{job_name} with #{options.to_json}"
       write_output "Loading #{job_name} with #{options.to_json}\n"
@@ -55,9 +57,32 @@ module MaestroDev
         steps << [:build_shell_step, step]
         Maestro.log.debug "setting step #{step}"
       end
-      
+
+
+      options[:user_defined_axes].andand.each do |axis_string|
+        values = []
+        name = nil
+        axis_string.split(' ').each do |part|
+          if name.nil?
+            name = part
+          else
+            values << part
+          end
+        end
+        axis = { :name => name, :values => values }
+        user_axes << axis
+        Maestro.log.debug "setting user-defined axis #{axis.inspect}"
+      end
+
+      options[:label_axes].andand.each do |axis|
+        label_axes << axis
+        Maestro.log.debug "setting label axis #{axis}"
+      end
+
       job_config = Jenkins::JobConfigBuilder.new('none') do |c|
         c.steps         = steps
+        c.user_axes     = user_axes
+        c.node_labels   = label_axes
         c.scm           = options[:scm] || ''
       end
       
@@ -116,12 +141,11 @@ module MaestroDev
       begin
         Maestro.log.info "Starting JENKINS participant..."
         validate_inputs
-        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']}"
+        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']},user_defined_axes = #{workitem['fields']['user_defined_axes']}"
         Maestro.log.debug "Beginning Process For Jenkins Job #{job_name}"
         write_output "Beginning Process For Jenkins Job #{job_name}\n"
 
         setup
-        
         job_exists_already = job_exists?(job_name)
         
         raise "Job Not Found And No Override Allowed" if !job_exists_already and !workitem['fields']['override_existing']
@@ -135,11 +159,22 @@ module MaestroDev
 
           steps = workitem['fields']['steps'] 
           steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
-          options = {}
-          options[:steps] = steps unless steps.nil?
-          options[:scm] = steps unless workitem['fields']['scm_url'].nil?
-          create_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) unless job_exists_already
-          update_job(job_name, {:steps => steps, :scm => workitem['fields']['scm_url']}) if job_exists_already
+
+          Maestro.log.debug "Parsing User-Defined Axes from #{workitem['fields']['user_defined_axes']}"
+          write_output "Parsing  User-Defined Axes From #{workitem['fields']['label_axes']}\n"
+
+          user_axes = workitem['fields']['user_defined_axes']
+          user_axes = JSON.parse user_axes.gsub(/\'/, '"') if user_axes.is_a? String
+
+          Maestro.log.debug "Parsing Label Axes from #{workitem['fields']['label_axes']}"
+          write_output "Parsing Label Axes From #{workitem['fields']['label_axes']}\n"
+
+          label_axes = workitem['fields']['label_axes']
+          label_axes = JSON.parse label_axes.gsub(/\'/, '"') if label_axes.is_a? String
+
+
+          create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) unless job_exists_already
+          update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) if job_exists_already
         end
         
         build_number = get_next_build_number(job_name)

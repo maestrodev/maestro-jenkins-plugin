@@ -24,6 +24,8 @@
 		  "use_ssl":{"required":true,"type":"Boolean","value":false},
 		  "web_path":{"required":false,"type":"String","value":""},
 		  "scm_url":{"required":false,"type":"Url","value":""},
+      "user_defined_axes":{"required": false, "type": "Array", "value":[]},
+      "label_axes":{"required": false, "type": "Array", "value":[]},
 		  "steps":{"required":false,"type":"Array","value":[]},
 		  "override_existing":{"required":true,"type":"Boolean","value":false}
 	  },
