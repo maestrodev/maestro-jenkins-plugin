@@ -6,7 +6,7 @@ gem 'bundler', '>= 1.0.21'
 gem 'rake'
 gem 'zippy'
 
-gem 'maestro_agent', '>= 1.2.0.snapshot'#, :path => "../MaestroAgent/"
+gem 'maestro_agent', '>= 1.2.0'#, :path => "../MaestroAgent/"
 
 #dependencies
 gem 'jenkins', '>= 0.6.9'
