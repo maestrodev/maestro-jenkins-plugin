@@ -21,7 +21,7 @@ require 'zippy'
 
 $:.push File.expand_path("../src", __FILE__)
 
-CLEAN.include("maestro-jenkins-plugin-1.0-SNAPSHOT.zip")
+CLEAN.include("maestro-jenkins-plugin-*.zip")
 
 task :default => [:bundle, :spec, :package]
 
@@ -53,7 +53,7 @@ end
 
 desc "Package plugin zip"
 task :package do
-  Zippy.create 'maestro-jenkins-plugin-1.0-SNAPSHOT.zip' do |z|
+  Zippy.create 'maestro-jenkins-plugin-1.0.zip' do |z|
     add_dir z, '.', 'vendor'
     add_file z, '.', 'manifest.json'
     add_file z, '.', 'README.md'
