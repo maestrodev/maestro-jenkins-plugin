@@ -3,7 +3,7 @@
     "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[username] Username for jenkins server<br>[password] Password for jenkins server<br>[job] Name Of The Jenkins Job<br>[web_path] context path of the jenkins server<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
     "license" : "Apache 2.0",
     "author": "Kelly Plummer",
-    "version": "1.0-SNAPSHOT",
+    "version": "1.1-SNAPSHOT",
     "class": "MaestroDev::JenkinsWorker",
     "type":"ruby",
     "dependencies":[
