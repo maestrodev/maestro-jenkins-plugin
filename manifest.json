@@ -1,34 +1,95 @@
 [{
     "name" : "jenkins plugin",
-    "description" : "Run A Set Of Work Steps In Jenkins, The Job Will Be Created If It Doesn't Exist<br>[host] Hostname Of The Jenkins Server<br>[port] Port Jenkins Is Running On<br>[username] Username for jenkins server<br>[password] Password for jenkins server<br>[job] Name Of The Jenkins Job<br>[web_path] context path of the jenkins server<br>[scm_url] Url Of The Source Code Repository<br>[steps] Set Of Steps To Be Executed By Jenkins",
+    "description" : "Run A Set Of Work Steps In Jenkins",
     "license" : "Apache 2.0",
     "author": "Kelly Plummer",
     "version": "1.1-SNAPSHOT",
     "class": "MaestroDev::JenkinsWorker",
+    
     "type":"ruby",
     "dependencies":[
-  		{
-  			"name" : "jenkins",
-  			"version" : "0.6.8",
-  			"source" : "http://rubygems.org/"
-  		}
-  	],
+      {
+        "name" : "jenkins",
+        "version" : "0.6.8",
+        "source" : "http://rubygems.org/"
+      }
+    ],
     "task":{
       "command" : "/jenkinsplugin/build",    
       "inputs" :  {
-		  "host":{"required":true,"type":"String","value":"localhost"},
-		  "port":{"required":false,"type":"Integer","value":8080},
-		  "job":{"required":true,"type":"String","value":""},
-		  "username":{"required":false,"type":"String","value":""},
-		  "password":{"required":false,"type":"Password","value":""},
-		  "use_ssl":{"required":true,"type":"Boolean","value":false},
-		  "web_path":{"required":false,"type":"String","value":""},
-		  "scm_url":{"required":false,"type":"Url","value":""},
-      "user_defined_axes":{"required": false, "type": "Array", "value":[]},
-      "label_axes":{"required": false, "type": "Array", "value":[]},
-		  "steps":{"required":false,"type":"Array","value":[]},
-		  "override_existing":{"required":true,"type":"Boolean","value":false}
-	  },
+        "host":{
+          "required":true,
+          "type":"String",
+          "value":"localhost",
+          "description": "Hostname Of The Jenkins Server"
+        },
+        "port":{
+          "required":false,
+          "type":"Integer",
+          "value":8080,
+          "description": "Port Jenkins Is Running On"
+        },
+        "job":{
+          "required":true,
+          "type":"String",
+          "value":"",
+          "description": "Name Of The Jenkins Job"
+        },
+        "username":{
+          "required":false,
+          "type":"String",
+          "value":"",
+          "description": "Username for jenkins server"
+        },
+        "password":{
+          "required":false,
+          "type":"Password",
+          "value":"",
+          "description": "Password for jenkins server"
+        },
+        "use_ssl":{
+          "required":true,
+          "type":"Boolean",
+          "value":false,
+          "description": "use ssl connection"
+        },
+        "web_path":{
+          "required":false,
+          "type":"String",
+          "value":"",
+          "description": "path of the jenkins application in the server"
+        },
+        "scm_url":{
+          "required":false,
+          "type":"Url",
+          "value":"",
+          "description": "Url Of The Source Code Repository"
+        },
+        "user_defined_axes":{
+          "required": false,
+          "type": "Array",
+          "value":[],
+          "description": ""
+        },
+        "label_axes":{
+          "required": false,
+          "type": "Array",
+          "value":[],
+          "description": ""
+        },
+        "steps":{
+          "required":false,
+          "type":"Array",
+          "value":[],
+          "description": "Set Of Steps To Be Executed By Jenkins"
+        },
+        "override_existing":{
+          "required":true,
+          "type":"Boolean",
+          "value":false,
+          "description": "Overwrite existing jobs, or create if it does not exist"
+        }
+      },
       "outputs" : {"output" : {"type" : "String"}},
       "tool_name":"Build"
     },
