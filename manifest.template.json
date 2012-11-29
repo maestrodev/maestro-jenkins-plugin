@@ -3,7 +3,7 @@
     "description" : "Run A Set Of Work Steps In Jenkins",
     "license" : "Apache 2.0",
     "author": "Kelly Plummer",
-    "version": "1.1-SNAPSHOT",
+    "version": "updated at build time",
     "class": "MaestroDev::JenkinsWorker",
     
     "type":"ruby",

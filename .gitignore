@@ -1,4 +1,10 @@
+Gemfile.lock
+target/
+.idea/
+*.iml
 .bundle
 vendor
 package
-maestro-jenkins-plugin-*.zip
+maestro-*-plugin-*.zip
+tmp/
+manifest.json

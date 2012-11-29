@@ -1,18 +1,19 @@
 source :rubygems
-source "https://gems.gemfury.com/19mFQpkpgWC8xqPZVizB/"
 
-
-gem 'bundler', '>= 1.0.21'
-gem 'rake'
-gem 'zippy'
-
-gem 'maestro_agent', '>= 1.2.0'#, :path => "../MaestroAgent/"
+gem 'maestro_agent', '~>1.3.0'#, :path => "../MaestroAgent/"
 
 #dependencies
 gem 'jenkins', '>= 0.6.9'
 
+group :development do
+  gem 'zippy'
+  gem 'bundler', '>=1.0.21'
+  gem 'rake'
+  gem 'nokogiri'
+  gem 'git'
+end
+
 group :test do
-  gem "mocha", "0.10.0"
   gem 'rspec'
   gem 'rspec-core'
   gem 'rcov', '0.9.11'

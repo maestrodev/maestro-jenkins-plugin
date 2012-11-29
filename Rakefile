@@ -18,12 +18,16 @@
 require 'rake/clean'
 require 'rspec/core/rake_task'
 require 'zippy'
+require 'git'
+require 'nokogiri'
+require 'json'
 
 $:.push File.expand_path("../src", __FILE__)
 
-CLEAN.include("maestro-jenkins-plugin-*.zip")
+CLEAN.include("manifest.json", "*-plugin.zip", "vendor", "package", "tmp", ".bundle")
 
-task :default => [:bundle, :spec, :package]
+task :default => :all
+task :all => [:clean, :bundle, :spec, :package]
 
 desc "Run specs"
 RSpec::Core::RakeTask.new do |t|
@@ -34,7 +38,9 @@ end
 
 desc "Get dependencies with Bundler"
 task :bundle do
-  system "bundle package"
+  sh %{bundle package} do |ok, res|
+    raise "Error bundling" if ! ok
+  end
 end
 
 def add_file( zippyfile, dst_dir, f )
@@ -53,11 +59,35 @@ end
 
 desc "Package plugin zip"
 task :package do
-  Zippy.create 'maestro-jenkins-plugin-1.1-SNAPSHOT.zip' do |z|
+  f = File.open("pom.xml")
+  doc = Nokogiri::XML(f.read)
+  f.close
+  artifactId = doc.css('artifactId').first.text
+  version = doc.css('version').first.text
+  zip_file = "#{artifactId}-#{version}.zip"
+
+  if File.exists?(".git")
+    git = Git.open(".")
+    # check if there are modified files
+    if git.status.select {|s| s.type == "M"}.empty?
+      commit = git.log.first.sha[0..5]
+      version = "#{version}-#{commit}"
+    else
+      puts "WARNINIG: There are modified files, not using commit hash in version"
+    end
+  end
+
+  # update manifest
+  manifest = JSON.parse(IO.read("manifest.template.json"))
+  manifest.each { |m| m['version'] = version }
+  File.open("manifest.json",'w'){ |f| f.write(JSON.pretty_generate(manifest)) }
+
+  Zippy.create zip_file do |z|
+    add_dir z, '.', 'src'
     add_dir z, '.', 'vendor'
+    add_dir z, '.', 'images'
     add_file z, '.', 'manifest.json'
     add_file z, '.', 'README.md'
-    add_file z, '.', 'src/jenkins_worker.rb'
-    add_file z, '.', 'monkey/job_config_builder.rb'
+    add_file z, '.', 'LICENSE'
   end
 end
