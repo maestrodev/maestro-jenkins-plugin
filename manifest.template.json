@@ -10,7 +10,7 @@
     "dependencies":[
       {
         "name" : "jenkins",
-        "version" : "0.6.8",
+        "version" : "0.6.9",
         "source" : "http://rubygems.org/"
       }
     ],
@@ -69,13 +69,13 @@
           "required": false,
           "type": "Array",
           "value":[],
-          "description": ""
+          "description": "User defined axes used for a configuration matrix project"
         },
         "label_axes":{
           "required": false,
           "type": "Array",
           "value":[],
-          "description": ""
+          "description": "Labels for a configuration matrix project"
         },
         "steps":{
           "required":false,
