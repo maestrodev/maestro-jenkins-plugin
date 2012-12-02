@@ -2,7 +2,7 @@ require 'rubygems'
 require 'jenkins'
 require 'maestro_agent'
 
-require File.join(File.dirname(__FILE__),'..','monkey','job_config_builder') 
+require 'job_config_builder'
 
 
 module MaestroDev

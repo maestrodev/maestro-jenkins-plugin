@@ -24,7 +24,7 @@ require 'json'
 
 $:.push File.expand_path("../src", __FILE__)
 
-CLEAN.include("manifest.json", "*-plugin.zip", "vendor", "package", "tmp", ".bundle")
+CLEAN.include("manifest.json", "*-plugin-*.zip", "vendor", "package", "tmp", ".bundle")
 
 task :default => :all
 task :all => [:clean, :bundle, :spec, :package]
