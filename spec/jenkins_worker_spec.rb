@@ -39,6 +39,9 @@ describe MaestroDev::JenkinsWorker do
     
     it "should return true if job exists" do
       if @stub_jenkins
+        plain = mock()
+        plain.stubs(:body => {"jobs" => [{"name" => "test job"}]}.to_json)
+        @participant.stubs(:get_plain => plain)
         Jenkins::Api.stubs(:job_names => ['test job'])
       end
       @participant.job_exists?('test job').should be_true
@@ -47,7 +50,9 @@ describe MaestroDev::JenkinsWorker do
     it "should delete job" do
       if @stub_jenkins
         @participant.expects(:post_plain)
-        Jenkins::Api.stubs(:job_names => [])
+        plain = mock()
+        plain.stubs(:body => {"jobs" => []}.to_json)
+        @participant.stubs(:get_plain => plain)
       end
       @participant.delete_job('test job')
       @participant.job_exists?('test job').should be_false
@@ -76,7 +81,8 @@ describe MaestroDev::JenkinsWorker do
 
 
       if @stub_jenkins
-        Jenkins::Api.stubs(:job_names => [])
+        @participant.stubs(:job_exists? => false)
+
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stub(:code => "200")
@@ -109,7 +115,7 @@ describe MaestroDev::JenkinsWorker do
 
 
       if @stub_jenkins
-        Jenkins::Api.stubs(:job_names => [])
+        @participant.stubs(:job_exists? => false)
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stub(:code => "200")

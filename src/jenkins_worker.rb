@@ -29,8 +29,29 @@ module MaestroDev
        )
     end
     
+    def is_json?(maybe_json)
+      begin
+        JSON.parse(maybe_json)
+        return true
+      rescue
+        return false
+      end
+    end
+    
     def job_exists?(job_name)
-      !Jenkins::Api.job_names.find{|job| job == job_name}.nil?
+      begin
+        response = get_plain("#{@web_path}/api/json")
+        unless response.nil? or !response.respond_to?('body') or is_json?(response.body)
+          raise "Unable To Parse Response From Jenkins Server" 
+          Maestro.log.warn "#{response.respond_to?('body') ? response.body : response }"
+        end
+        response = JSON.parse response.body
+        raise "Invalid JSON Missing 'jobs' Entry #{response.to_json}" unless response.keys.find{|key| key == 'jobs'}
+        response['jobs'].find{|job| return true if job['name'] == job_name }
+      rescue Exception => e
+        raise "Could Not Detect If Job Exists On Jenkins Server #{e}"
+      end
+      return false
     end
    
     def delete_job(job_name)
@@ -141,6 +162,7 @@ module MaestroDev
       begin
         Maestro.log.info "Starting JENKINS participant..."
         validate_inputs
+        puts workitem['fields'].to_json
         Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']},user_defined_axes = #{workitem['fields']['user_defined_axes']}"
         Maestro.log.debug "Beginning Process For Jenkins Job #{job_name}"
         write_output "Beginning Process For Jenkins Job #{job_name}\n"
