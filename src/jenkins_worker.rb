@@ -8,7 +8,8 @@ require 'job_config_builder'
 module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
 
-
+    # Returns the jenkins API endpoint uri or false if host is not set
+    # (shouldn't happen as it is validated before)
     def setup
       host = workitem['fields']['host']
       port = workitem['fields']['port']
@@ -29,27 +30,34 @@ module MaestroDev
        )
     end
     
-    def is_json?(maybe_json)
-      begin
-        JSON.parse(maybe_json)
-        return true
-      rescue
-        return false
-      end
-    end
-    
     def job_exists?(job_name)
-      begin
-        response = get_plain("#{@web_path}/api/json")
-        unless response.nil? or !response.respond_to?('body') or is_json?(response.body)
-          raise "Unable To Parse Response From Jenkins Server" 
-          Maestro.log.warn "#{response.respond_to?('body') ? response.body : response }"
+      api_url = "#{@web_path}/api/json"
+      response = get_plain(api_url)
+      if response.nil?
+        msg = "Unable To Get Response From Jenkins Server at: '#{api_url}'"
+        set_error msg
+        Maestro.log.warn msg
+      else
+        if !response.respond_to?('body')
+          msg = "Unable To Get Response From Jenkins Server at '#{api_url}': #{response}"
+          set_error msg
+          Maestro.log.warn msg
+        else
+          begin
+            response = JSON.parse(response.body)
+            if response.keys.find{|key| key == 'jobs'}
+              return !response['jobs'].find{|job| job['name'] == job_name }.nil?
+            else
+              msg = "Invalid JSON: Missing 'jobs' Entry #{response.to_json}" 
+              set_error msg
+              Maestro.log.warn msg
+            end
+          rescue JSON::ParserError => e
+            msg = "Unable To Parse JSON from Jenkins Server '#{api_url}' -> #{e.message}: #{response.body}" 
+            set_error msg
+            Maestro.log.warn msg
+          end
         end
-        response = JSON.parse response.body
-        raise "Invalid JSON Missing 'jobs' Entry #{response.to_json}" unless response.keys.find{|key| key == 'jobs'}
-        response['jobs'].find{|job| return true if job['name'] == job_name }
-      rescue Exception => e
-        raise "Could Not Detect If Job Exists On Jenkins Server #{e}"
       end
       return false
     end
@@ -71,8 +79,7 @@ module MaestroDev
       user_axes = []
       label_axes = []
       
-      Maestro.log.debug "Loading #{job_name} with #{options.to_json}"
-      write_output "Loading #{job_name} with #{options.to_json}\n"
+      log_output "Loading #{job_name} with #{options.to_json}"
 
       options[:steps].andand.each do |step|
         steps << [:build_shell_step, step]
@@ -154,117 +161,106 @@ module MaestroDev
         workitem['fields']['port'] = workitem['fields']['use_ssl'] ? 443 : 80
       end
 
-      raise "Missing Field Host" if workitem['fields']['host'].nil? or workitem['fields']['host'].empty?
-      raise "Missing Field Job" if workitem['fields']['job'].nil? or workitem['fields']['job'].empty?
+      missing = ['host', 'job'].select{|f| empty?(f)}
+      set_error("Missing Fields: #{missing.join(",")}") unless missing.empty?
     end
 
     def build
-      begin
-        Maestro.log.info "Starting JENKINS participant..."
-        validate_inputs
-        puts workitem['fields'].to_json
-        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']},user_defined_axes = #{workitem['fields']['user_defined_axes']}"
-        Maestro.log.debug "Beginning Process For Jenkins Job #{job_name}"
-        write_output "Beginning Process For Jenkins Job #{job_name}\n"
+      Maestro.log.info "Starting JENKINS participant..."
+      validate_inputs
+      return if error?
 
-        setup
-        job_exists_already = job_exists?(job_name)
-        
-        raise "Job Not Found And No Override Allowed" if !job_exists_already and !workitem['fields']['override_existing']
-        write_output "Job #{job_name} found\n"
-        
-        if(workitem['fields']['override_existing'])
-          Maestro.log.debug "Creating Job #{job_name}, None Found" unless job_exists_already
-          write_output "Creating Job #{job_name}, None Found\n" unless job_exists_already
-          Maestro.log.debug "Parsing Steps From #{workitem['fields']['steps']}"
-          write_output "Parsing Steps From #{workitem['fields']['steps']}\n"
+      Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']},user_defined_axes = #{workitem['fields']['user_defined_axes']}"
+      log_output("Beginning Process For Jenkins Job #{job_name}")
 
-          steps = workitem['fields']['steps'] 
-          steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
+      uri = setup
+      log_output("Connecting to Jenkins server at #{uri.to_s}", :info)
+      log_output("Using username '#{get_field("username")}' and #{"no " if get_field("password").nil?}password", :info) if get_field("username")
 
-          Maestro.log.debug "Parsing User-Defined Axes from #{workitem['fields']['user_defined_axes']}"
-          write_output "Parsing  User-Defined Axes From #{workitem['fields']['label_axes']}\n"
-
-          user_axes = workitem['fields']['user_defined_axes']
-          user_axes = JSON.parse user_axes.gsub(/\'/, '"') if user_axes.is_a? String
-
-          Maestro.log.debug "Parsing Label Axes from #{workitem['fields']['label_axes']}"
-          write_output "Parsing Label Axes From #{workitem['fields']['label_axes']}\n"
-
-          label_axes = workitem['fields']['label_axes']
-          label_axes = JSON.parse label_axes.gsub(/\'/, '"') if label_axes.is_a? String
-
-
-          create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) unless job_exists_already
-          update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) if job_exists_already
-        end
-        
-        build_number = get_next_build_number(job_name)
-        
-        success = false
-
-        success = build_job(job_name)
-
-
-        Maestro.log.debug "Jenkins Job Did #{success ? "" : "Not"} Start Successfully"
-        write_output "Jenkins Job #{success ? "Started Successfully" : "Failed To Start"} \n"
-        
-        if !success
-          workitem['fields']['__error__'] = "Jenkins job failed to start" 
-          return
-        end
-
-        Maestro.log.debug "Build Number Is #{build_number}"
-        write_output "Build Number Is #{build_number}\n"
-
-        console = ""
-
-        begin
-          begin
-            details = get_build_details_for_build(job_name, build_number)
-            write_output find_new_console(job_name,build_number, console)
-
-            console = get_build_console_for_build(job_name,build_number)
-          rescue Exception => te
-            if defined? failures
-              failures += 1
-            else
-              failures = 0
-            end
-            raise if failures > 5
-          end
-          sleep(5)
-
-        end while details.is_a? FalseClass  or (details.is_a?Hash and details["building"])
-
-        write_output find_new_console(job_name,build_number, console)
-
-        console = get_build_console_for_build(job_name,build_number)
-        success = details['result'] == 'SUCCESS'
-
-        if respond_to? :add_link
-          add_link("Build Page", details["url"])
-          add_link("Test Result", "#{details["url"]}testReport")
-        end
-
-        Maestro.log.debug "Jenkins Job Completed #{success ? "" : "Not"} Successfully"
-        write_output "Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully\n"
-        
-        workitem['fields']['__error__'] = "Jenkins job failed" if !success
-        workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
-
-      rescue Exception => e
-        Maestro.log.error "#{e}\n #{e.backtrace.join("\n")}"
-        message = "Jenkins job failed "
-        if e.message.match("Invalid JSON string")
-          message += "make sure Jenkins settings are correct Host = #{workitem['fields']['host']} Port = #{ workitem['fields']['port']} Web Path = #{ workitem['fields']['web_path']} "
-        else
-          message += e.message
-        end
-
-        workitem['fields']['__error__'] = message
+      job_exists_already = job_exists?(job_name)
+      return if error?
+      
+      if !job_exists_already and !workitem['fields']['override_existing']
+        set_error("Job '#{job_name}' Not Found And No Override Allowed")
         return
       end
+      write_output "Job '#{job_name}' found\n"
+      
+      if(workitem['fields']['override_existing'])
+        unless job_exists_already
+          log_output("Creating Job '#{job_name}', None Found" )
+        end
+        log_output("Parsing Steps From #{workitem['fields']['steps']}")
+
+        steps = workitem['fields']['steps'] 
+        steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
+
+        log_output("Parsing User-Defined Axes from #{workitem['fields']['user_defined_axes']}")
+
+        user_axes = workitem['fields']['user_defined_axes']
+        user_axes = JSON.parse user_axes.gsub(/\'/, '"') if user_axes.is_a? String
+
+        log_output("Parsing Label Axes from #{workitem['fields']['label_axes']}")
+
+        label_axes = workitem['fields']['label_axes']
+        label_axes = JSON.parse label_axes.gsub(/\'/, '"') if label_axes.is_a? String
+
+
+        create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) unless job_exists_already
+        update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) if job_exists_already
+      end
+      
+      build_number = get_next_build_number(job_name)
+      
+      success = false
+
+      success = build_job(job_name)
+
+      log_output("Jenkins Job #{success ? "Started Successfully" : "Failed To Start"}")
+      
+      if !success
+        workitem['fields']['__error__'] = "Jenkins job failed to start" 
+        return
+      end
+
+      log_output("Build Number Is #{build_number}")
+
+      console = ""
+
+      begin
+        failures = 0
+        begin
+          details = get_build_details_for_build(job_name, build_number)
+          write_output find_new_console(job_name,build_number, console)
+
+          console = get_build_console_for_build(job_name,build_number)
+        rescue Exception => e
+          Maestro.log.warn "Error getting build details for #{job_name} build number #{build_number}. Retrying\n#{e}\n #{e.backtrace.join("\n")}"
+          failures += 1
+          if failures > 5
+            write_output("5 Failures trying to get build details for #{job_name} build number #{build_number}\n")
+            raise te
+          end
+        end
+        sleep(5)
+
+      end while details.is_a? FalseClass  or (details.is_a?Hash and details["building"])
+
+      write_output find_new_console(job_name,build_number, console)
+
+      console = get_build_console_for_build(job_name,build_number)
+      success = details['result'] == 'SUCCESS'
+
+      if respond_to? :add_link
+        add_link("Build Page", details["url"])
+        add_link("Test Result", "#{details["url"]}testReport")
+      end
+
+      log_output("Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully")
+      
+      workitem['fields']['__error__'] = "Jenkins job failed" if !success
+      workitem['fields']['output'] = Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(console)
+
       Maestro.log.debug "Finished Processing Jenkins Job"
 
       Maestro.log.info "***********************Completed JENKINS***************************"
@@ -313,5 +309,13 @@ module MaestroDev
       end
     end
     
+    def empty?(field)
+      get_field(field).nil? or get_field(field).empty?
+    end
+
+    def log_output(msg, level=:debug)
+      Maestro.log.send(level, msg)
+      write_output "#{msg}\n"
+    end
   end
 end

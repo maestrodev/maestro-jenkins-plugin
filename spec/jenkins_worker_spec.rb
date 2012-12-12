@@ -26,7 +26,28 @@ describe MaestroDev::JenkinsWorker do
     end
   end
   
-  describe 'job_exits?' do
+  describe 'setup' do
+    before :each do
+      @fields = {
+         'host' => 'jenkins.acme.com',
+         'port' => 9999,
+         'web_path' => 'jk',
+         'username' => 'john',
+         'password' => 'pass'
+      }
+    end
+
+    it 'should return the jenkins server uri' do
+      @participant.stubs(:workitem => {'fields' => @fields})
+      @participant.setup.to_s.should eq('http://jenkins.acme.com:9999/jk')
+    end
+    it 'should return the jenkins server uri with https' do
+      @participant.stubs(:workitem => {'fields' => @fields.merge({'use_ssl' => true, 'web_path' => nil})})
+      @participant.setup.to_s.should eq('https://jenkins.acme.com:9999/')
+    end
+  end
+
+  describe 'job_exists?' do
     before :all do
       #create job
       if !@stub_jenkins
@@ -45,6 +66,7 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.stubs(:job_names => ['test job'])
       end
       @participant.job_exists?('test job').should be_true
+      @participant.error.should be_nil
     end
 
     it "should delete job" do
@@ -56,6 +78,7 @@ describe MaestroDev::JenkinsWorker do
       end
       @participant.delete_job('test job')
       @participant.job_exists?('test job').should be_false
+      @participant.error.should be_nil
     end
     
     it "should return false if job does not exists" do
@@ -63,11 +86,36 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.expects(:job_names => [])
       end
       @participant.job_exists?('not a real job').should be_false      
+      @participant.error.should be_nil
+    end
+
+    it "should return false if unable to parse json" do
+      if @stub_jenkins
+        plain = mock()
+        plain.stubs(:body => "{}}")
+        @participant.stubs(:get_plain => plain)
+      end
+      @participant.job_exists?('job').should be_false
+      @participant.error.should include("Unable To Parse JSON")
+      @participant.error.should include("unexpected token at '}'")
     end
   end
   
   describe 'build()' do
     
+    it "should validate fields" do
+      workitem = {'fields' => {
+         'host' => ''
+         # 'job' => nil,
+         # 'port' => nil
+      }}
+      @participant.expects(:workitem).at_least_once.returns(workitem)
+      @participant.build
+
+      @participant.fields['port'].should == 80
+      @participant.error.should include("Missing Fields: host,job")
+    end
+
     it "should build job with jenkins" do
       workitem = {'fields' => {
          'host' => 'localhost',

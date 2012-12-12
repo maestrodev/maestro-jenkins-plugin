@@ -1,6 +1,6 @@
 source :rubygems
 
-gem 'maestro_agent', '~>1.3.0'#, :path => "../MaestroAgent/"
+gem 'maestro_agent', '~>1.5.0'#, :path => "../MaestroAgent/"
 
 #dependencies
 gem 'jenkins', '>= 0.6.9'

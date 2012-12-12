@@ -32,7 +32,7 @@ task :all => [:clean, :bundle, :spec, :package]
 desc "Run specs"
 RSpec::Core::RakeTask.new do |t|
   t.pattern = "./spec/**/*_spec.rb" # don't need this, it's default.
-  t.rspec_opts = "--fail-fast --format p --color"
+  t.rspec_opts = "--format p --color"
   # Put spec opts in a file named .rspec in root
 end
 
@@ -73,7 +73,7 @@ task :package do
       commit = git.log.first.sha[0..5]
       version = "#{version}-#{commit}"
     else
-      puts "WARNINIG: There are modified files, not using commit hash in version"
+      puts "WARNING: There are modified files, not using commit hash in version"
     end
   end
 
