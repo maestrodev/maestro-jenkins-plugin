@@ -127,7 +127,7 @@ module MaestroDev
 
     def get_next_build_number(job_name)
       job = Jenkins::Api.job(URI.escape(job_name))
-      (job['nextBuildNumber'].to_i || 1)
+      job['nextBuildNumber'] ? job['nextBuildNumber'].to_i : 1
     end
     
     def get_build_details_for_build(job_name, build_number)
