@@ -17,5 +17,5 @@ group :test do
   gem 'rspec'
   gem 'rspec-core'
   gem 'rcov', '0.9.11'
-  gem 'mocha', '0.10.0'
+  gem 'mocha', '>= 0.13.0', :require => false
 end

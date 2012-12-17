@@ -4,6 +4,28 @@ require 'maestro_agent'
 
 require 'job_config_builder'
 
+module Jenkins
+  module Api
+
+    @error
+    def self.error
+      @error
+    end
+
+    def self.show_me_the_error(response)
+      require "hpricot"
+      doc = Hpricot(response.body)
+      error_msg = doc.search("td#main-panel p")
+      unless error_msg.inner_text.blank?
+        @error = error_msg.inner_text
+      else
+        # TODO - what are the errors we get?
+        @error = "#{response.code} #{response.body}"
+      end
+      Maestro.log.warn "Jenkins Error: #{@error}"
+    end
+  end
+end
 
 module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
@@ -115,9 +137,11 @@ module MaestroDev
       end
       
       if update
-        Jenkins::Api.update_job(job_name, job_config)
+        success = Jenkins::Api.update_job(job_name, job_config)
+        set_error("Failed to update job #{job_name}: #{Jenkins::Api.error}") unless success
       else
-        Jenkins::Api.create_job(job_name, job_config)
+        success = Jenkins::Api.create_job(job_name, job_config)
+        set_error("Failed to create job #{job_name}: #{Jenkins::Api.error}") unless success
       end
     end
 
@@ -205,9 +229,12 @@ module MaestroDev
         label_axes = workitem['fields']['label_axes']
         label_axes = JSON.parse label_axes.gsub(/\'/, '"') if label_axes.is_a? String
 
-
-        create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) unless job_exists_already
-        update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']}) if job_exists_already
+        if job_exists_already
+          update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']})
+        else
+          create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']})
+        end
+        return if error?
       end
       
       build_number = get_next_build_number(job_name)

@@ -6,8 +6,7 @@ describe MaestroDev::JenkinsWorker do
   
   JOB_CONSOLE = "Started by user anonymous\n[workspace] $ /bin/sh -xe /tmp/hudson5379787065231741934.sh\n+ rake\nrake/rdoctask is deprecated.  Use rdoc/task instead (in RDoc 2.4.2+)\n/opt/ruby/bin/ruby -S rspec --colour spec/client_spec.rb spec/connection_spec.rb spec/message_spec.rb\nJeweler not available. Install it with: gem install jeweler\n...........................................................................................connect to localhost failed: exception will retry(#0) in 0.01\n................\n\nFinished in 0.16676 seconds\n107 examples, 0 failures\nFinished: SUCCESS\n"
   
-  before(:all) do
-
+  before(:each) do
     @participant = MaestroDev::JenkinsWorker.new
     @participant.stubs(:write_output)
     workitem = {'fields' => {}}
@@ -48,7 +47,7 @@ describe MaestroDev::JenkinsWorker do
   end
 
   describe 'job_exists?' do
-    before :all do
+    before :each do
       #create job
       if !@stub_jenkins
         @participant.delete_job('test job')
@@ -61,9 +60,8 @@ describe MaestroDev::JenkinsWorker do
     it "should return true if job exists" do
       if @stub_jenkins
         plain = mock()
-        plain.stubs(:body => {"jobs" => [{"name" => "test job"}]}.to_json)
-        @participant.stubs(:get_plain => plain)
-        Jenkins::Api.stubs(:job_names => ['test job'])
+        plain.stubs(:code => 200, :body => {"jobs" => [{"name" => "test job"}]}.to_json)
+        @participant.stubs(:get_plain).returns(plain)
       end
       @participant.job_exists?('test job').should be_true
       @participant.error.should be_nil
@@ -81,10 +79,10 @@ describe MaestroDev::JenkinsWorker do
       @participant.error.should be_nil
     end
     
-    it "should return false if job does not exists" do
-      if @stub_jenkins
-        Jenkins::Api.expects(:job_names => [])
-      end
+    it "should return false if job does not exist" do
+      response = mock()
+      response.stubs(:body => {:jobs => []}.to_json)
+      @participant.expects(:get_plain).with("//api/json").returns(response)
       @participant.job_exists?('not a real job').should be_false      
       @participant.error.should be_nil
     end
@@ -133,7 +131,7 @@ describe MaestroDev::JenkinsWorker do
 
         Jenkins::Api.expects(:create_job => [])
         response = mock
-        response.stub(:code => "200")
+        response.stubs(:code => "200")
         @participant.stubs(:get_plain => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
@@ -166,7 +164,7 @@ describe MaestroDev::JenkinsWorker do
         @participant.stubs(:job_exists? => false)
         Jenkins::Api.expects(:create_job => [])
         response = mock
-        response.stub(:code => "200")
+        response.stubs(:code => "200")
         @participant.stubs(:get_plain => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
@@ -197,11 +195,35 @@ describe MaestroDev::JenkinsWorker do
          Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
          Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
        end
+       @participant.stubs(:job_exists? => false)
        @participant.stubs(:build_job => false)
        @participant.stubs(:workitem => workitem)
        @participant.build
 
        workitem['fields']['__error__'].should eql("Jenkins job failed to start")
+    end
+
+    it "should supply error when job fails to be created" do
+      workitem = {'fields' => {
+        'host' => 'localhost',
+        'web_path' => 'jenkins',
+        'use_ssl' => false,
+        'job' => 'myjob',
+        'override_existing' => true}}
+
+      if @stub_jenkins
+        request = {:body => '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<project>\n  <actions/>\n  <description/>\n  <keepDependencies>false</keepDependencies>\n  <properties/>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\'vector\'/>\n  <concurrentBuild>false</concurrentBuild>\n  <builders>\n  </builders>\n  <publishers/>\n  <buildWrappers/>\n</project>\n', :format => :xml, :headers => {'content-type' => 'application/xml'}}
+        response = mock('response')
+        response.stubs(:code => 500, :body => 'error')
+        Jenkins::Api.expects(:post).with("/createItem/api/xml?name=myjob", Mocha::ParameterMatchers::Anything.new).returns(response)
+        # Jenkins::Api.stubs(:job_names => [])
+        # Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
+      end
+      @participant.stubs(:workitem => workitem)
+      @participant.stubs(:job_exists? => false)
+      @participant.build
+
+      @participant.error.should eql("Failed to create job myjob: 500 error")
     end
 
     it "should supply error when job fails" do
@@ -214,12 +236,12 @@ describe MaestroDev::JenkinsWorker do
                   'override_existing' => true
          }}
 
-       #all stubs
-       Jenkins::Api.stubs(:job_names => [])
-       Jenkins::Api.expects(:create_job => [])
-       response = mock
-       response.stub(:code => "200")
-       @participant.stubs(:get_plain => response)
+      #all stubs
+      Jenkins::Api.stubs(:job_names => [])
+      Jenkins::Api.expects(:create_job => [])
+      response = mock()
+      response.stubs(:code => 200, :body => {:jobs => []}.to_json)
+      @participant.expects(:get_plain).with("/jenkins/api/json").returns(response)
 
        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
