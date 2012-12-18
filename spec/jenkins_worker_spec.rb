@@ -125,7 +125,6 @@ describe MaestroDev::JenkinsWorker do
          'override_existing' => true
       }}
 
-
       if @stub_jenkins
         @participant.stubs(:job_exists? => false)
 
@@ -135,7 +134,9 @@ describe MaestroDev::JenkinsWorker do
         @participant.stubs(:get_plain => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
-        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
+        # on first invocation job is not ready yet
+        e = Net::HTTPServerException.new("not found", Net::HTTPNotFound.new(nil,nil,nil))
+        Jenkins::Api.expects(:build_details).twice.with("CEE%20Buildaroo", 1).raises(e).then.returns({"building" => false, "result" => "SUCCESS"})
       end
       @participant.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
       @participant.expects(:workitem).at_least_once.returns(workitem)
@@ -143,6 +144,28 @@ describe MaestroDev::JenkinsWorker do
 
       workitem['fields']['__error__'].should be_nil
       workitem['fields']['output'].should eql(JOB_CONSOLE)
+    end
+
+    it "should fail if build details fails to respond" do
+      workitem = {'fields' => {
+         'host' => 'localhost',
+         'job' => 'CEE Buildaroo',
+         'steps' => ['bundle', 'rake'],
+         'override_existing' => true
+      }}
+
+      if @stub_jenkins
+        @participant.stubs(:job_exists? => false)
+        @participant.stubs(:create_job => [])
+        @participant.stubs(:get_next_build_number => 1)
+        @participant.stubs(:build_job => true)
+        e = Net::HTTPServerException.new("not found", Net::HTTPNotFound.new(nil,nil,nil))
+        @participant.stubs(:get_build_details_for_build).times(6).with("CEE Buildaroo", 1).raises(e)
+      end
+      @participant.expects(:workitem).at_least_once.returns(workitem)
+      @participant.build
+
+      @participant.error.should eq("Timed out trying to get build details for CEE Buildaroo build number 1")
     end
 
     it "should build jobs with user defined axes with jenkins" do

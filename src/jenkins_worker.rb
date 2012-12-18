@@ -254,24 +254,25 @@ module MaestroDev
 
       console = ""
 
+      failures = 0
       begin
-        failures = 0
-        begin
-          details = get_build_details_for_build(job_name, build_number)
-          write_output find_new_console(job_name,build_number, console)
-
-          console = get_build_console_for_build(job_name,build_number)
-        rescue Exception => e
-          Maestro.log.warn "Error getting build details for #{job_name} build number #{build_number}. Retrying\n#{e}\n #{e.backtrace.join("\n")}"
+        details = get_build_details_for_build(job_name, build_number)
+        write_output find_new_console(job_name,build_number, console)
+        console = get_build_console_for_build(job_name,build_number)
+      rescue Net::HTTPServerException => e
+        case e.response
+        when Net::HTTPNotFound
+          Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
           failures += 1
           if failures > 5
-            write_output("5 Failures trying to get build details for #{job_name} build number #{build_number}\n")
-            raise te
+            set_error("Timed out trying to get build details for #{job_name} build number #{build_number}")
+            return
           end
+          sleep(5)
+        else
+          raise e
         end
-        sleep(5)
-
-      end while details.is_a? FalseClass  or (details.is_a?Hash and details["building"])
+      end while details.nil? or details.is_a?(FalseClass) or (details.is_a?(Hash) and details["building"])
 
       write_output find_new_console(job_name,build_number, console)
 
