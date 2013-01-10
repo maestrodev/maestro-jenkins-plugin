@@ -175,7 +175,17 @@ module MaestroDev
     end
 
     def build_job(job_name)
-      response = get_plain "#{@web_path}/job/#{job_name}/build"
+      begin
+        response = get_plain "#{@web_path}/job/#{job_name}/build"
+      rescue Net::HTTPServerException => e
+        Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
+        # it may be a build with parameters, launch it with the default parameters
+        if e.response.code == "405"
+          response = get_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
+        else
+          raise e
+        end
+      end
       response.code == "200"
     end
 
@@ -300,11 +310,17 @@ module MaestroDev
     def get_plain(path, options = {})
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
-      
+
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = workitem['fields']['use_ssl']
+
+      escaped_path = URI.escape(path)
+      username_s = get_field('username') ? " with username #{get_field('username')}" : ""
+      full_url = "http#{http.use_ssl? ? "s" : ""}://#{uri.host}:#{uri.port}#{escaped_path}"
+      Maestro.log.debug("Requesting GET #{full_url}#{username_s}")
+
       http.start do |http|
-          req = Net::HTTP::Get.new(URI.escape(path))
+          req = Net::HTTP::Get.new(escaped_path)
           req.basic_auth(get_field('username'),get_field('password')) 
           response = http.request(req)
           case response
@@ -313,6 +329,9 @@ module MaestroDev
             when Net::HTTPRedirection then 
               get_plain(response['location'])
             else
+              msg = "Error requesting Jenkins url #{full_url}#{username_s}: #{response.code} #{response.message}"
+              Maestro.log.error msg
+              write_output("#{msg}\n")
               response.error!
           end
       end
