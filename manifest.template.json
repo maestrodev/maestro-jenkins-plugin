@@ -65,6 +65,12 @@
           "value":"",
           "description": "Url Of The Source Code Repository"
         },
+        "parameters": {
+          "required": false,
+          "type": "Array",
+          "value":[],
+          "description": "Parameters to pass to the job. Name=value formatted."
+        },
         "user_defined_axes":{
           "required": false,
           "type": "Array",

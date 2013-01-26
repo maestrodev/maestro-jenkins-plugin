@@ -174,18 +174,30 @@ module MaestroDev
       Iconv.new('US-ASCII//IGNORE', 'UTF-8').iconv(new_console.slice(size, new_size))
     end
 
-    def build_job(job_name)
-      begin
-        response = get_plain "#{@web_path}/job/#{job_name}/build"
-      rescue Net::HTTPServerException => e
-        Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
-        # it may be a build with parameters, launch it with the default parameters
-        if e.response.code == "405"
-          response = get_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
-        else
-          raise e
+    def build_job(job_name, parameters)
+
+      unless (parameters.nil? or parameters.empty?)
+        url_params = ''
+        parameters.each do |param|
+          url_params << '&' unless url_params.empty?
+          url_params << param
+        end
+        url = "#{@web_path}/job/#{job_name}/buildWithParameters?#{url_params}"
+        response = get_plain(url)
+      else
+        begin
+          response = get_plain "#{@web_path}/job/#{job_name}/build"
+        rescue Net::HTTPServerException => e
+          Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
+          # it may be a build with parameters, launch it with the default parameters
+          if e.response.code == "405"
+            response = get_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
+          else
+            raise e
+          end
         end
       end
+
       response.code == "200"
     end
 
@@ -246,12 +258,14 @@ module MaestroDev
         end
         return if error?
       end
-      
+
+      parameters = workitem['fields']['parameters']
+
       build_number = get_next_build_number(job_name)
       
       success = false
 
-      success = build_job(job_name)
+      success = build_job(job_name, parameters)
 
       log_output("Jenkins Job #{success ? "Started Successfully" : "Failed To Start"}")
       

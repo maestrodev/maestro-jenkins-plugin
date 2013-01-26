@@ -146,6 +146,26 @@ describe MaestroDev::JenkinsWorker do
       workitem['fields']['output'].should eql(JOB_CONSOLE)
     end
 
+    it "should build a parameterized job with jenkins" do
+
+      job_name = 'Parameterized CEE Buildaroo'
+      parameters = [ 'param1=value1', 'param2=value2' ]
+      workitem = {'fields' => {
+          'host' => 'localhost',
+          'web_path' => 'jenkins',
+          'use_ssl' => true,
+          'job' => job_name,
+          'override_existing' => false,
+          'parameters' => parameters
+      }}
+      response = stub(:code => "200")
+      @participant.stubs(:workitem => workitem)
+      @participant.expects(:get_plain).with("/jenkins/job/Parameterized CEE Buildaroo/buildWithParameters?param1=value1&param2=value2").returns(response)
+      @participant.setup
+      @participant.build_job(job_name, parameters)
+
+    end
+
     it "should fail if build details fails to respond" do
       workitem = {'fields' => {
          'host' => 'localhost',
