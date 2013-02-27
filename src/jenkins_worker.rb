@@ -36,7 +36,8 @@ module MaestroDev
       host = workitem['fields']['host']
       port = workitem['fields']['port']
       username = workitem['fields']['username']
-      password = workitem['fields']['password']      
+      password = workitem['fields']['password']
+      @query_interval = 3 # every how many seconds to ping jenkins for console updates
       
       use_ssl = workitem['fields']['use_ssl'] || false
       @web_path = workitem['fields']['web_path'] || '/'
@@ -283,6 +284,7 @@ module MaestroDev
         details = get_build_details_for_build(job_name, build_number)
         write_output find_new_console(job_name,build_number, console)
         console = get_build_console_for_build(job_name,build_number)
+        sleep(@query_interval)
       rescue Net::HTTPServerException => e
         case e.response
         when Net::HTTPNotFound
@@ -292,7 +294,7 @@ module MaestroDev
             set_error("Timed out trying to get build details for #{job_name} build number #{build_number}")
             return
           end
-          sleep(5)
+          sleep(@query_interval)
         else
           raise e
         end
@@ -324,26 +326,31 @@ module MaestroDev
     def get_plain(path, options = {})
       options = options.with_clean_keys
       uri = URI.parse Jenkins::Api.base_uri
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = workitem['fields']['use_ssl']
-
       escaped_path = URI.escape(path)
+      full_url = "http#{workitem['fields']['use_ssl'] ? "s" : ""}://#{uri.host}:#{uri.port}#{escaped_path}"
+      get_plain_url full_url
+    end
+
+    def get_plain_url(url)
+      uri = URI.parse(url)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == "https")
+
       username_s = get_field('username') ? " with username #{get_field('username')}" : ""
-      full_url = "http#{http.use_ssl? ? "s" : ""}://#{uri.host}:#{uri.port}#{escaped_path}"
-      Maestro.log.debug("Requesting GET #{full_url}#{username_s}")
+      Maestro.log.debug("Requesting GET #{url}#{username_s}")
 
       http.start do |http|
-          req = Net::HTTP::Get.new(escaped_path)
+          req = Net::HTTP::Get.new(uri.path)
           req.basic_auth(get_field('username'),get_field('password')) 
           response = http.request(req)
           case response
             when Net::HTTPSuccess     then 
               return response
-            when Net::HTTPRedirection then 
-              get_plain(response['location'])
+            when Net::HTTPRedirection then
+              Maestro.log.debug("Redirected to #{response['location']}")
+              get_plain_url(response['location'])
             else
-              msg = "Error requesting Jenkins url #{full_url}#{username_s}: #{response.code} #{response.message}"
+              msg = "Error requesting Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
               Maestro.log.error msg
               write_output("#{msg}\n")
               response.error!
