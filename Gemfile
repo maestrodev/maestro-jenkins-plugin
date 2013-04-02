@@ -1,9 +1,9 @@
-source :rubygems
+source 'https://rubygems.org'
 
 gem 'maestro_agent', '~>1.5.0'#, :path => "../MaestroAgent/"
 
 #dependencies
-gem 'jenkins', '>= 0.6.9'
+gem 'jenkins-maestrodev', '>= 0.6.9'
 
 group :development do
   gem 'zippy'

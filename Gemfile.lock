@@ -21,7 +21,7 @@ GEM
     hpricot (0.8.6-java)
     httparty (0.6.1)
       crack (= 0.1.8)
-    jenkins (0.6.9)
+    jenkins-maestrodev (0.6.9)
       builder (~> 2.1.2)
       hpricot
       httparty (~> 0.6.1)
@@ -136,7 +136,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (>= 1.0.21)
   git
-  jenkins (>= 0.6.9)
+  jenkins-maestrodev (>= 0.6.9)
   maestro_agent (~> 1.5.0)
   mocha (>= 0.13.0)
   nokogiri
