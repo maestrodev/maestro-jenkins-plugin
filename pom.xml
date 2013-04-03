@@ -23,7 +23,20 @@
       <id>java.net</id>
       <url>http://download.java.net/maven/2/</url>
     </repository>
+    <repository>
+      <id>maestrodev</id>
+      <url>https://repo.maestrodev.com/archiva/repository/all/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>fail</checksumPolicy>
+      </releases>
+    </repository>
   </repositories>
+
   <distributionManagement>
     <repository>
       <id>maestro-deploy</id>
