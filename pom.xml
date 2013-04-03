@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.maestrodev</groupId>
-    <artifactid>ruby-plugins</artifactid>
+    <artifactId>ruby-plugins</artifactId>
     <version>2-SNAPSHOT</version>
   </parent>
   <groupId>com.maestrodev</groupId>
