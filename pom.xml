@@ -37,22 +37,29 @@
     </repository>
   </repositories>
 
-  <distributionManagement>
-    <repository>
-      <id>maestro-deploy</id>
-      <url>https://repo.maestrodev.com/archiva/repository/public-releases/</url>
-    </repository>
-    <snapshotRepository>
-      <id>maestro-deploy</id>
-      <url>https://repo.maestrodev.com/archiva/repository/public-snapshots/</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <build>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-zip</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.artifactId}-${project.version}.zip</file>
+                  <type>zip</type>
+                  <classifier>bin</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
