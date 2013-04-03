@@ -1,9 +1,8 @@
 source 'https://rubygems.org'
 
-gem 'maestro_agent', '~>1.5.0'#, :path => "../MaestroAgent/"
-
-#dependencies
+gem 'maestro_plugin', '>= 0.0.2'
 gem 'jenkins-maestrodev', '>= 0.6.9'
+gem 'andand', '1.3.1'
 
 group :development do
   gem 'zippy'
@@ -15,7 +14,6 @@ end
 
 group :test do
   gem 'rspec'
-  gem 'rspec-core'
   gem 'rcov', '0.9.11'
   gem 'mocha', '>= 0.13.0', :require => false
 end
