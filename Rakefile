@@ -62,8 +62,8 @@ task :package do
   f = File.open("pom.xml")
   doc = Nokogiri::XML(f.read)
   f.close
-  artifactId = doc.css('artifactId').first.text
-  version = doc.css('version').first.text
+  artifactId = doc.xpath('/xmlns:project/xmlns:artifactId').text
+  version = doc.xpath('/xmlns:project/xmlns:version').text
   zip_file = "#{artifactId}-#{version}.zip"
 
   if File.exists?(".git")
