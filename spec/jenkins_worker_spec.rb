@@ -162,7 +162,7 @@ describe MaestroDev::JenkinsWorker do
       response = stub(:code => "200")
       @participant.stubs(:workitem => workitem)
       @participant.stubs(:get_test_results => nil)
-      @participant.expects(:get_plain).with("/jenkins/job/Parameterized CEE Buildaroo/buildWithParameters?param1=value1&param2=value2").returns(response)
+      @participant.expects(:post_plain).with("/jenkins/job/Parameterized CEE Buildaroo/buildWithParameters?param1=value1&param2=value2").returns(response)
       @participant.setup
       @participant.build_job(job_name, parameters)
 
