@@ -86,13 +86,20 @@ module MaestroDev
     end
     
     def get_test_results(job_name, build_number)
+      # A 404 indicates no test data available
       path  = "#{@web_path}/job/#{job_name}/#{build_number}/testReport/api/json"
-      response = get_plain(path)
+      begin
+        response = get_plain(path)
+      rescue Net::HTTPServerException => e
+        case e.response
+        when Net::HTTPNotFound
+          Maestro.log.debug "Jenkins job #{job_name} has no test output"
+        else
+          raise e
+        end
+      end
       
-      if response.nil?
-        msg = "Unable To Get Response From Jenkins Server at: '#{path}'"
-        Maestro.log.warn msg
-      else
+      if response
         begin
           return JSON.parse(response)
         rescue JSON::ParserError => e
