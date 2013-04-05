@@ -101,7 +101,7 @@ module MaestroDev
       
       if response
         begin
-          return JSON.parse(response)
+          return JSON.parse(response.body)
         rescue JSON::ParserError => e
           msg = "Unable To Parse JSON from Jenkins Server '#{path}' -> #{e.message}: #{response.body}" 
           Maestro.log.warn msg
