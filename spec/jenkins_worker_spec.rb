@@ -127,6 +127,7 @@ describe MaestroDev::JenkinsWorker do
 
       if @stub_jenkins
         @participant.stubs(:job_exists? => false)
+        @participant.stubs(:get_test_results => nil)
 
         Jenkins::Api.expects(:create_job => [])
         response = mock
@@ -160,6 +161,7 @@ describe MaestroDev::JenkinsWorker do
       }}
       response = stub(:code => "200")
       @participant.stubs(:workitem => workitem)
+      @participant.stubs(:get_test_results => nil)
       @participant.expects(:get_plain).with("/jenkins/job/Parameterized CEE Buildaroo/buildWithParameters?param1=value1&param2=value2").returns(response)
       @participant.setup
       @participant.build_job(job_name, parameters)
@@ -205,6 +207,7 @@ describe MaestroDev::JenkinsWorker do
 
       if @stub_jenkins
         @participant.stubs(:job_exists? => false)
+        @participant.stubs(:get_test_results => nil)
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
@@ -289,6 +292,7 @@ describe MaestroDev::JenkinsWorker do
        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
        @participant.stubs(:build_job => true)
+       @participant.stubs(:get_test_results => nil)
        @participant.expects(:get_build_console_for_build => "").at_least_once
        @participant.expects(:workitem).at_least_once.returns(workitem)
        @participant.build
