@@ -16,4 +16,5 @@ group :test do
   gem 'rspec'
   gem 'rcov', '0.9.11'
   gem 'mocha', '>= 0.13.0', :require => false
+  gem 'jruby-openssl'
 end
