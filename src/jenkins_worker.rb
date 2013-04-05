@@ -84,6 +84,24 @@ module MaestroDev
       end
       return false
     end
+    
+    def get_test_results(job_name, build_number)
+      path  = "#{@web_path}/job/#{job_name}/#{build_number}/testReport/api/json"
+      response = get_plain(path)
+      
+      if response.nil?
+        msg = "Unable To Get Response From Jenkins Server at: '#{path}'"
+        Maestro.log.warn msg
+      else
+        begin
+          return JSON.parse(response)
+        rescue JSON::ParserError => e
+          msg = "Unable To Parse JSON from Jenkins Server '#{path}' -> #{e.message}: #{response.body}" 
+          Maestro.log.warn msg
+        end
+      end
+      return false
+    end
    
     def delete_job(job_name)
       post_plain("#{@web_path}/job/#{job_name}/doDelete")
@@ -184,7 +202,7 @@ module MaestroDev
           url_params << param
         end
         url = "#{@web_path}/job/#{job_name}/buildWithParameters?#{url_params}"
-        response = get_plain(url)
+        response = post_plain(url)
       else
         begin
           response = get_plain "#{@web_path}/job/#{job_name}/build"
@@ -192,7 +210,7 @@ module MaestroDev
           Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
           # it may be a build with parameters, launch it with the default parameters
           if e.response.code == "405"
-            response = get_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
+            response = post_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
           else
             raise e
           end
@@ -304,7 +322,15 @@ module MaestroDev
 
       console = get_build_console_for_build(job_name,build_number)
       success = details['result'] == 'SUCCESS'
+        
+      test_results = get_test_results(job_name, build_number)
+      
+      if test_results
+        test_meta = [{ :tests => test_results['totalCount'], :failures => test_results['failCount'], :skipped => test_results['skipCount'] }]
+        save_output_value('tests', test_meta)
+      end
 
+      
       if respond_to? :add_link
         add_link("Build Page", details["url"])
         add_link("Test Result", "#{details["url"]}testReport")
