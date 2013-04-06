@@ -333,12 +333,20 @@ module MaestroDev
       test_results = get_test_results(job_name, build_number)
       
       if test_results
-        fail_count = test_results['failCount']
-        skip_count = test_results['skipCount']
+        fail_count = test_results['failCount'] || 0
+        skip_count = test_results['skipCount'] || 0
         pass_count = test_results['passCount']
-        total_count = fail_count + skip_count + pass_count
+        test_count = test_results['totalCount']
 
-        test_meta = [{ :tests => total_count, :failures => fail_count, :skipped => skip_count, :passed => pass_count, :duration => test_results['duration'] }]
+        if pass_count.nil?
+          pass_count = !test_count.nil? ? test_count - (skip_count + fail_count) : 0
+        end
+
+        if test_count.nil?
+          test_count = fail_count + skip_count + pass_count
+        end
+
+        test_meta = [{ :tests => test_count, :failures => fail_count, :skipped => skip_count, :passed => pass_count, :duration => test_results['duration'] }]
         save_output_value('tests', test_meta)
       end
 
