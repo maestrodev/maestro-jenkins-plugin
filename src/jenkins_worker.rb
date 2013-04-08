@@ -1,7 +1,6 @@
 require 'rubygems'
 require 'jenkins'
 require 'maestro_plugin'
-require 'job_config_builder'
 require 'andand'
 
 module Jenkins
