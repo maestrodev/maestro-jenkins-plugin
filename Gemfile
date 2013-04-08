@@ -1,8 +1,10 @@
 source 'https://rubygems.org'
 
-gem 'maestro_plugin', '>= 0.0.2'
+gem 'maestro_agent', '>=1.5.0'#, :path => "../MaestroAgent/"
+
+#dependencies
 gem 'jenkins-maestrodev', '>= 0.6.9'
-gem 'andand', '1.3.1'
+gem 'andand', '>=1.3.1'
 
 group :development do
   gem 'zippy'
