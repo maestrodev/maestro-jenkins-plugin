@@ -329,9 +329,17 @@ module MaestroDev
       console = get_build_console_for_build(job_name,build_number)
       success = details['result'] == 'SUCCESS'
         
+      url_meta = {}
+#      url_meta['job'] =  # Maybe add root for job at some point
+      url_meta['build'] = details['url']
+      url_meta['log'] = "#{details['url']}console"
+
       test_results = get_test_results(job_name, build_number)
       
       if test_results
+        # Add test url to links
+        url_meta['test'] = "#{details['url']}testReport"
+
         fail_count = test_results['failCount'] || 0
         skip_count = test_results['skipCount'] || 0
         pass_count = test_results['passCount']
@@ -349,6 +357,8 @@ module MaestroDev
         save_output_value('tests', test_meta)
       end
 
+      # Persist any links to meta data
+      save_output_value('links', url_meta)
       
       if respond_to? :add_link
         add_link("Build Page", details["url"])
