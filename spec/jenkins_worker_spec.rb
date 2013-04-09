@@ -132,7 +132,7 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.expects(:get_plain).with("/jenkins/job/CEE Buildaroo/build").returns(response)
+        @participant.expects(:post_plain).with("/jenkins/job/CEE Buildaroo/build").returns(response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         # on first invocation job is not ready yet
@@ -211,7 +211,7 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.stubs(:get_plain => response)
+        @participant.stubs(:post_plain => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
