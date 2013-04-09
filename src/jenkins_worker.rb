@@ -211,7 +211,7 @@ module MaestroDev
         response = post_plain(url)
       else
         begin
-          response = get_plain "#{@web_path}/job/#{job_name}/build"
+          response = post_plain "#{@web_path}/job/#{job_name}/build"
         rescue Net::HTTPServerException => e
           Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
           # it may be a build with parameters, launch it with the default parameters
