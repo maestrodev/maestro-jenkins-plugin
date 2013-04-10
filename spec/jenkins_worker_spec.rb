@@ -9,7 +9,9 @@ describe MaestroDev::JenkinsWorker do
   before(:each) do
     @participant = MaestroDev::JenkinsWorker.new
     @participant.stubs(:write_output)
-    workitem = {'fields' => {}}
+    workitem = {'fields' => {
+      'host' => 'test',
+      'web_path' => 'jenkins' }}
     @participant.stubs(:workitem => workitem)
     @participant.setup
     
@@ -61,7 +63,7 @@ describe MaestroDev::JenkinsWorker do
       if @stub_jenkins
         plain = mock()
         plain.stubs(:code => 200, :body => {"jobs" => [{"name" => "test job"}]}.to_json)
-        @participant.stubs(:get_plain).returns(plain)
+        @participant.stubs(:get_plain_url).returns(plain)
       end
       @participant.job_exists?('test job').should be_true
       @participant.error.should be_nil
@@ -69,10 +71,10 @@ describe MaestroDev::JenkinsWorker do
 
     it "should delete job" do
       if @stub_jenkins
-        @participant.expects(:post_plain)
         plain = mock()
         plain.stubs(:body => {"jobs" => []}.to_json)
-        @participant.stubs(:get_plain => plain)
+        @participant.stubs(:post_plain_url).returns(plain)
+        @participant.stubs(:get_plain_url).returns(plain)
       end
       @participant.delete_job('test job')
       @participant.job_exists?('test job').should be_false
@@ -82,7 +84,7 @@ describe MaestroDev::JenkinsWorker do
     it "should return false if job does not exist" do
       response = mock()
       response.stubs(:body => {:jobs => []}.to_json)
-      @participant.expects(:get_plain).with("//api/json").returns(response)
+      @participant.expects(:get_plain_url).with("http://test/jenkins/api/json").returns(response)
       @participant.job_exists?('not a real job').should be_false      
       @participant.error.should be_nil
     end
@@ -91,7 +93,7 @@ describe MaestroDev::JenkinsWorker do
       if @stub_jenkins
         plain = mock()
         plain.stubs(:body => "{}}")
-        @participant.stubs(:get_plain => plain)
+        @participant.stubs(:get_plain_url => plain)
       end
       @participant.job_exists?('job').should be_false
       @participant.error.should include("Unable To Parse JSON")
@@ -132,7 +134,7 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.expects(:post_plain).with("/jenkins/job/CEE Buildaroo/build").returns(response)
+        @participant.expects(:post_plain_url).with("https://localhost/jenkins/job/CEE%20Buildaroo/build", '', {}).returns(response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         # on first invocation job is not ready yet
@@ -162,7 +164,7 @@ describe MaestroDev::JenkinsWorker do
       response = stub(:code => "200")
       @participant.stubs(:workitem => workitem)
       @participant.stubs(:get_test_results => nil)
-      @participant.expects(:post_plain).with("/jenkins/job/Parameterized CEE Buildaroo/buildWithParameters?param1=value1&param2=value2").returns(response)
+      @participant.expects(:post_plain_url).with("https://localhost/jenkins/job/Parameterized%20CEE%20Buildaroo/buildWithParameters?param1=value1&param2=value2", '', {}).returns(response)
       @participant.setup
       @participant.build_job(job_name, parameters)
 
@@ -211,7 +213,7 @@ describe MaestroDev::JenkinsWorker do
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.stubs(:post_plain => response)
+        @participant.stubs(:post_plain_url => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
@@ -287,7 +289,7 @@ describe MaestroDev::JenkinsWorker do
       Jenkins::Api.expects(:create_job => [])
       response = mock()
       response.stubs(:code => 200, :body => {:jobs => []}.to_json)
-      @participant.expects(:get_plain).with("/jenkins/api/json").returns(response)
+      @participant.expects(:get_plain_url).with("https://localhost/jenkins/api/json").returns(response)
 
        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})

@@ -53,7 +53,7 @@ module MaestroDev
     end
     
     def job_exists?(job_name)
-      api_url = "#{@web_path}/api/json"
+      api_url = "/api/json"
       response = get_plain(api_url)
       if response.nil?
         msg = "Unable To Get Response From Jenkins Server at: '#{api_url}'"
@@ -86,7 +86,7 @@ module MaestroDev
     
     def get_test_results(job_name, build_number)
       # A 404 indicates no test data available
-      path  = "#{@web_path}/job/#{job_name}/#{build_number}/testReport/api/json"
+      path  = "/job/#{job_name}/#{build_number}/testReport/api/json"
       begin
         response = get_plain(path)
       rescue Net::HTTPServerException => e
@@ -110,7 +110,7 @@ module MaestroDev
     end
    
     def delete_job(job_name)
-      post_plain("#{@web_path}/job/#{job_name}/doDelete")
+      post_plain("/job/#{job_name}/doDelete")
     end
 
     def update_job(job_name, options)
@@ -184,7 +184,7 @@ module MaestroDev
     end
     
     def get_build_console_for_build(job_name, build_number)
-      path  = "#{@web_path}/job/#{job_name}/#{build_number}/"
+      path  = "/job/#{job_name}/#{build_number}/"
       path << "consoleText"
       get_plain(path).body
     end
@@ -207,16 +207,16 @@ module MaestroDev
           url_params << '&' unless url_params.empty?
           url_params << param
         end
-        url = "#{@web_path}/job/#{job_name}/buildWithParameters?#{url_params}"
+        url = "/job/#{job_name}/buildWithParameters?#{url_params}"
         response = post_plain(url)
       else
         begin
-          response = post_plain "#{@web_path}/job/#{job_name}/build"
+          response = post_plain "/job/#{job_name}/build"
         rescue Net::HTTPServerException => e
           Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
           # it may be a build with parameters, launch it with the default parameters
           if e.response.code == "405"
-            response = post_plain "#{@web_path}/job/#{job_name}/buildWithParameters"
+            response = post_plain "/job/#{job_name}/buildWithParameters"
           else
             raise e
           end
@@ -377,19 +377,45 @@ module MaestroDev
 
     private 
     
-    # Helper for GET that don't barf at Jenkins's crappy API responses
-    def get_plain(path, options = {})
-      options = options.with_clean_keys
+    # Generate the url to visit
+    def get_jenkins_url(method, path)
       uri = URI.parse Jenkins::Api.base_uri
       escaped_path = URI.escape(path)
-      full_url = "http#{workitem['fields']['use_ssl'] ? "s" : ""}://#{uri.host}:#{uri.port}#{escaped_path}"
-      get_plain_url full_url
+      url = "#{Jenkins::Api.base_uri}#{escaped_path}"
+      log_output("URL for #{method} operation = #{url}")
+      url
     end
 
-    def get_plain_url(url)
-      uri = URI.parse(url)
+    def get_http(uri)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == "https")
+      http
+    end
+
+    # Helper for GET that don't barf at Jenkins's crappy API responses
+    # get_plain
+    #  path = portion of path to use AFTER jenkins root url, prefixed with a forward-slash
+    #         ex: if jenkins params to setup are:
+    #             host => 'localhost'
+    #             port => '8080'
+    #             use_ssl => false
+    #             path/web-path => 'jenkins'
+    #         Then the jenkins root url will be:
+    #             http://localhost:8080/jenkins
+    #         'path' is appended to this, so if 'path' is '/api/json' we end up with:
+    #             http://localhost:8080/jenkins/api/json
+    #  options = not used
+    def get_plain(path, options = {})
+      options = options.with_clean_keys
+      get_plain_url(get_jenkins_url('GET', path))
+    end
+
+    # called by 'get_plain' above
+    # will follow redirects and return end result.
+    # not smart enough to know that it is following its own tail
+    def get_plain_url(url)
+      uri = URI.parse(url)
+      http = get_http(uri)
 
       username_s = get_field('username') ? " with username #{get_field('username')}" : ""
       Maestro.log.debug("Requesting GET #{url}#{username_s}")
@@ -406,29 +432,45 @@ module MaestroDev
               get_plain_url(response['location'])
             else
               msg = "Error requesting Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
-              Maestro.log.error msg
-              write_output("#{msg}\n")
+              log_output(msg, :error)
               response.error!
           end
       end
     end
 
-
+    # Helper for POST to jenkins
+    #  path = portion of path to use AFTER jenkins root url, prefixed with a forward-slash
+    #         @see get_plain
     def post_plain(path, data = "", options = {})
       options = options.with_clean_keys
-      uri = URI.parse Jenkins::Api.base_uri
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = workitem['fields']['use_ssl']
-      http.start do |http|
-        # if RUBY_VERSION =~ /1.8/
-          req = Net::HTTP::Post.new(URI.escape(@web_path + path))
-          req.basic_auth(get_field('username'),get_field('password')) 
-          response = http.request(req)
+      post_plain_url(get_jenkins_url('POST', path), data, options)
+    end
+    
+    # called by 'post_plain' above
+    # will follow redirects (but issue GET requests for them - actually hands off to 'get_plain_url')
+    def post_plain_url(url, data, options)
+      uri = URI.parse(url)
+      http = get_http(uri)
 
-          http.post(URI.escape(path), options)
-        # else
-        #   http.post(URI.escape(path), data, options)
-        # end
+      username_s = get_field('username') ? " with username #{get_field('username')}" : ""
+      Maestro.log.debug("Performing POST #{url}#{username_s}")
+
+      http.start do |http|
+        req = Net::HTTP::Post.new(uri.path)
+        req.basic_auth(get_field('username'),get_field('password')) 
+        response = http.request(req)
+
+        case response
+        when Net::HTTPSuccess     then 
+          return response
+        when Net::HTTPRedirection then
+          Maestro.log.debug("Redirected to #{response['location']}")
+          get_plain_url(response['location'])
+        else
+          msg = "Error posting to Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
+          log_output(msg, :error)
+          response.error!
+        end
       end
     end
     
