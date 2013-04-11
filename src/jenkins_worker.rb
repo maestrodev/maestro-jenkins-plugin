@@ -190,6 +190,12 @@ module MaestroDev
     end
 
     def find_new_console(job_name, build_number, console)
+      # If we were to use the jenkins /job/#{job_name}/#{build_number}/logText/progressiveText?start=${last_known_pos}
+      # then jenkins would do all this work for us, and we wouldn't consume increasing amounts of memory (x2) in order
+      # for us to calculate the increment
+      # Note the additional headers that Jenkins makes available so we know where we're up to, and whether the log is
+      # "done" (i.e. build complete, log isn't gonna be getting any bigger)
+      # Improvement logged in MAESTRO-2743
       new_console = get_build_console_for_build(job_name, build_number)
       return '' if new_console.include?('Error 404')
 
@@ -382,7 +388,7 @@ module MaestroDev
       uri = URI.parse Jenkins::Api.base_uri
       escaped_path = URI.escape(path)
       url = "#{Jenkins::Api.base_uri}#{escaped_path}"
-      log_output("URL for #{method} operation = #{url}")
+      Maestro.log.debug "URL for #{method}: #{url}"
       url
     end
 
