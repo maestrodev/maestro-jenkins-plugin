@@ -100,11 +100,14 @@ module MaestroDev
       
       if response
         begin
+          write_output "Retrieved test results\n"
           return JSON.parse(response.body)
         rescue JSON::ParserError => e
           msg = "Unable To Parse JSON from Jenkins Server '#{path}' -> #{e.message}: #{response.body}" 
           Maestro.log.warn msg
         end
+      else
+        write_output "No test results available\n"
       end
       return false
     end
@@ -437,8 +440,7 @@ module MaestroDev
               Maestro.log.debug("Redirected to #{response['location']}")
               get_plain_url(response['location'])
             else
-              msg = "Error requesting Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
-              log_output(msg, :error)
+              Maestro.log.debug "Error requesting Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
               response.error!
           end
       end
@@ -473,8 +475,7 @@ module MaestroDev
           Maestro.log.debug("Redirected to #{response['location']}")
           get_plain_url(response['location'])
         else
-          msg = "Error posting to Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
-          log_output(msg, :error)
+          Maestro.log.debug "Error posting to Jenkins url #{url}#{username_s}: #{response.code} #{response.message}"
           response.error!
         end
       end
