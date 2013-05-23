@@ -6,14 +6,6 @@ gem 'maestro_plugin', '>=0.0.4'
 gem 'jenkins-maestrodev', '>= 0.6.9'
 gem 'andand', '>=1.3.1'
 
-group :development do
-  gem 'zippy'
-  gem 'bundler', '>=1.0.21'
-  gem 'rake'
-  gem 'nokogiri'
-  gem 'git'
-end
-
 group :test do
   gem 'rspec'
   gem 'rcov', '0.9.11'
