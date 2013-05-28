@@ -464,7 +464,9 @@ module MaestroDev
       Maestro.log.debug("Performing POST #{url}#{username_s}")
 
       http.start do |http|
-        req = Net::HTTP::Post.new(uri.path)
+        path = uri.path
+        path += "?#{uri.query}" unless uri.query.nil?
+        req = Net::HTTP::Post.new(path)
         req.basic_auth(get_field('username'),get_field('password')) 
         response = http.request(req)
 
