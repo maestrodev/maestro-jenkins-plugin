@@ -6,98 +6,95 @@ describe MaestroDev::JenkinsWorker do
   
   JOB_CONSOLE = "Started by user anonymous\n[workspace] $ /bin/sh -xe /tmp/hudson5379787065231741934.sh\n+ rake\nrake/rdoctask is deprecated.  Use rdoc/task instead (in RDoc 2.4.2+)\n/opt/ruby/bin/ruby -S rspec --colour spec/client_spec.rb spec/connection_spec.rb spec/message_spec.rb\nJeweler not available. Install it with: gem install jeweler\n...........................................................................................connect to localhost failed: exception will retry(#0) in 0.01\n................\n\nFinished in 0.16676 seconds\n107 examples, 0 failures\nFinished: SUCCESS\n"
   
+  let(:stub_jenkins) { true }
+  let(:local_path) { "/tmp/stomp" }
+
   before(:each) do
-    @participant = MaestroDev::JenkinsWorker.new
-    @participant.stubs(:write_output)
+    subject.stubs(:write_output)
     workitem = {'fields' => {
       'host' => 'test',
       'web_path' => 'jenkins' }}
-    @participant.stubs(:workitem => workitem)
-    @participant.setup
+    subject.stubs(:workitem => workitem)
+    subject.setup
     
-    @stub_jenkins = true
-    
-    @local_path = "/tmp/stomp"
-    if !@stub_jenkins
-      git = Grit::Git.new(@local_path)
-
-      git.clone({:quiet => false, :timeout => 60, :verbose => true, :progress => true, :branch => 'm1.1.8'}, "https://github.com/kellyp/stomp.git", @local_path)
-  
-      raise "git clone failed to dir - #{@local_path}" if not File.exists?("#{@local_path}/Rakefile") 
+    local_path = "/tmp/stomp"
+    if !stub_jenkins
+      git = Grit::Git.new(local_path)
+      git.clone({:quiet => false, :timeout => 60, :verbose => true, :progress => true, :branch => 'm1.1.8'}, "https://github.com/kellyp/stomp.git", local_path)
+      raise "git clone failed to dir - #{local_path}" if not File.exists?("#{local_path}/Rakefile") 
     end
   end
   
   describe 'setup' do
-    before :each do
-      @fields = {
-         'host' => 'jenkins.acme.com',
-         'port' => 9999,
-         'web_path' => 'jk',
-         'username' => 'john',
-         'password' => 'pass'
-      }
-    end
+    let(:fields) { {
+        'host' => 'jenkins.acme.com',
+        'port' => 9999,
+        'web_path' => 'jk',
+        'username' => 'john',
+        'password' => 'pass'
+      } }
 
     it 'should return the jenkins server uri' do
-      @participant.stubs(:workitem => {'fields' => @fields})
-      @participant.setup.to_s.should eq('http://jenkins.acme.com:9999/jk')
+      subject.stubs(:workitem => {'fields' => fields})
+      subject.setup.to_s.should eq('http://jenkins.acme.com:9999/jk')
     end
+
     it 'should return the jenkins server uri with https' do
-      @participant.stubs(:workitem => {'fields' => @fields.merge({'use_ssl' => true, 'web_path' => nil})})
-      @participant.setup.to_s.should eq('https://jenkins.acme.com:9999/')
+      subject.stubs(:workitem => {'fields' => fields.merge({'use_ssl' => true, 'web_path' => nil})})
+      subject.setup.to_s.should eq('https://jenkins.acme.com:9999/')
     end
   end
 
   describe 'job_exists?' do
     before :each do
       #create job
-      if !@stub_jenkins
-        @participant.delete_job('test job')
-        @participant.create_job('test job', {:steps => ["bundle", "rspec spec"]})
+      if !stub_jenkins
+        subject.delete_job('test job')
+        subject.create_job('test job', {:steps => ["bundle", "rspec spec"]})
       else
         #do stubs here
       end
     end
     
     it "should return true if job exists" do
-      if @stub_jenkins
+      if stub_jenkins
         plain = mock()
         plain.stubs(:code => 200, :body => {"jobs" => [{"name" => "test job"}]}.to_json)
-        @participant.stubs(:get_plain_url).returns(plain)
+        subject.stubs(:get_plain_url).returns(plain)
       end
-      @participant.job_exists?('test job').should be_true
-      @participant.error.should be_nil
+      subject.job_exists?('test job').should be_true
+      subject.error.should be_nil
     end
 
     it "should delete job" do
-      if @stub_jenkins
+      if stub_jenkins
         plain = mock()
         plain.stubs(:body => {"jobs" => []}.to_json)
-        @participant.stubs(:post_plain_url).returns(plain)
-        @participant.stubs(:get_plain_url).returns(plain)
+        subject.stubs(:post_plain_url).returns(plain)
+        subject.stubs(:get_plain_url).returns(plain)
       end
-      @participant.delete_job('test job')
-      @participant.job_exists?('test job').should be_false
-      @participant.error.should be_nil
+      subject.delete_job('test job')
+      subject.job_exists?('test job').should be_false
+      subject.error.should be_nil
     end
     
     it "should return false if job does not exist" do
       response = mock()
       response.stubs(:body => {:jobs => []}.to_json)
-      @participant.expects(:get_plain_url).with("http://test/jenkins/api/json").returns(response)
-      @participant.job_exists?('not a real job').should be_false      
-      @participant.error.should be_nil
+      subject.expects(:get_plain_url).with("http://test/jenkins/api/json").returns(response)
+      subject.job_exists?('not a real job').should be_false      
+      subject.error.should be_nil
     end
 
     it "should return false if unable to parse json" do
-      if @stub_jenkins
+      if stub_jenkins
         plain = mock()
         plain.stubs(:body => "{}}")
-        @participant.stubs(:get_plain_url => plain)
+        subject.stubs(:get_plain_url => plain)
       end
-      @participant.job_exists?('job').should be_false
-      @participant.error.should include("Unable To Parse JSON")
-      @participant.error.should include("unexpected token at '}'")
+      subject.job_exists?('job').should be_false
+      subject.error.should include("Unable To Parse JSON")
+      subject.error.should include("unexpected token at '}'")
     end
   end
   
@@ -109,11 +106,11 @@ describe MaestroDev::JenkinsWorker do
          # 'job' => nil,
          # 'port' => nil
       }}
-      @participant.expects(:workitem).at_least_once.returns(workitem)
-      @participant.build
+      subject.expects(:workitem).at_least_once.returns(workitem)
+      subject.build
 
-      @participant.fields['port'].should == 80
-      @participant.error.should include("Missing Fields: host,job")
+      subject.fields['port'].should == 80
+      subject.error.should include("Missing Fields: host,job")
     end
 
     it "should build job with jenkins" do
@@ -127,23 +124,23 @@ describe MaestroDev::JenkinsWorker do
          'override_existing' => true
       }}
 
-      if @stub_jenkins
-        @participant.stubs(:job_exists? => false)
-        @participant.stubs(:get_test_results => nil)
+      if stub_jenkins
+        subject.stubs(:job_exists? => false)
+        subject.stubs(:get_test_results => nil)
 
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.expects(:post_plain_url).with("https://localhost/jenkins/job/CEE%20Buildaroo/build", '', {}).returns(response)
+        subject.expects(:post_plain_url).with("https://localhost/jenkins/job/CEE%20Buildaroo/build", '', {}).returns(response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         # on first invocation job is not ready yet
         e = Net::HTTPServerException.new("not found", Net::HTTPNotFound.new(nil,nil,nil))
         Jenkins::Api.expects(:build_details).twice.with("CEE%20Buildaroo", 1).raises(e).then.returns({"building" => false, "result" => "SUCCESS"})
       end
-      @participant.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
-      @participant.expects(:workitem).at_least_once.returns(workitem)
-      @participant.build
+      subject.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
+      subject.expects(:workitem).at_least_once.returns(workitem)
+      subject.build
 
       workitem['fields']['__error__'].should be_nil
       workitem['fields']['output'].should eql(JOB_CONSOLE)
@@ -162,12 +159,11 @@ describe MaestroDev::JenkinsWorker do
           'parameters' => parameters
       }}
       response = stub(:code => "200")
-      @participant.stubs(:workitem => workitem)
-      @participant.stubs(:get_test_results => nil)
-      @participant.expects(:post_plain_url).with("https://localhost/jenkins/job/Parameterized%20CEE%20Buildaroo/buildWithParameters?param1=value1&param2=value2", '', {}).returns(response)
-      @participant.setup
-      @participant.build_job(job_name, parameters)
-
+      subject.stubs(:workitem => workitem)
+      subject.stubs(:get_test_results => nil)
+      subject.expects(:post_plain_url).with("https://localhost/jenkins/job/Parameterized%20CEE%20Buildaroo/buildWithParameters?param1=value1&param2=value2", '', {}).returns(response)
+      subject.setup
+      subject.build_job(job_name, parameters)
     end
 
     it "should fail if build details fails to respond" do
@@ -178,18 +174,18 @@ describe MaestroDev::JenkinsWorker do
          'override_existing' => true
       }}
 
-      if @stub_jenkins
-        @participant.stubs(:job_exists? => false)
-        @participant.stubs(:create_job => [])
-        @participant.stubs(:get_next_build_number => 1)
-        @participant.stubs(:build_job => true)
+      if stub_jenkins
+        subject.stubs(:job_exists? => false)
+        subject.stubs(:create_job => [])
+        subject.stubs(:get_next_build_number => 1)
+        subject.stubs(:build_job => true)
         e = Net::HTTPServerException.new("not found", Net::HTTPNotFound.new(nil,nil,nil))
-        @participant.stubs(:get_build_details_for_build).times(6).with("CEE Buildaroo", 1).raises(e)
+        subject.stubs(:get_build_details_for_build).times(6).with("CEE Buildaroo", 1).raises(e)
       end
-      @participant.expects(:workitem).at_least_once.returns(workitem)
-      @participant.build
+      subject.expects(:workitem).at_least_once.returns(workitem)
+      subject.build
 
-      @participant.error.should eq("Timed out trying to get build details for CEE Buildaroo build number 1")
+      subject.error.should eq("Timed out trying to get build details for CEE Buildaroo build number 1")
     end
 
     it "should build jobs with user defined axes with jenkins" do
@@ -203,52 +199,48 @@ describe MaestroDev::JenkinsWorker do
           'user_defined_axes' => ['goal install package'],
           'label_axes' => ['linux', 'macos'],
           'steps' => ['ls -la /']
-
       }}
 
-
-      if @stub_jenkins
-        @participant.stubs(:job_exists? => false)
-        @participant.stubs(:get_test_results => nil)
+      if stub_jenkins
+        subject.stubs(:job_exists? => false)
+        subject.stubs(:get_test_results => nil)
         Jenkins::Api.expects(:create_job => [])
         response = mock
         response.stubs(:code => "200")
-        @participant.stubs(:post_plain_url => response)
+        subject.stubs(:post_plain_url => response)
         # Jenkins::Api.stubs(:build_job => true)
         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
       end
-      @participant.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
-      @participant.expects(:workitem).at_least_once.returns(workitem)
-      @participant.build
+      subject.expects(:get_build_console_for_build => JOB_CONSOLE).at_least_once
+      subject.expects(:workitem).at_least_once.returns(workitem)
+      subject.build
 
       workitem['fields']['__error__'].should be_nil
       workitem['fields']['output'].should eql(JOB_CONSOLE)
-
-
     end
 
     it "should supply error when job fails to start" do
-       workitem = {'fields' => {
-           'host' => 'localhost',
-           'web_path' => 'jenkins',
-           'use_ssl' => true,
-           'job' => 'stomp',
-         'override_existing' => true}}
+      workitem = {'fields' => {
+          'host' => 'localhost',
+          'web_path' => 'jenkins',
+          'use_ssl' => true,
+          'job' => 'stomp',
+          'override_existing' => true}}
 
-       Jenkins::Api.stubs(:build_job => false)
-       if @stub_jenkins
-         Jenkins::Api.expects(:create_job => [])
-         Jenkins::Api.stubs(:job_names => [])
-         Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
-         Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
-       end
-       @participant.stubs(:job_exists? => false)
-       @participant.stubs(:build_job => false)
-       @participant.stubs(:workitem => workitem)
-       @participant.build
+      Jenkins::Api.stubs(:build_job => false)
+      if stub_jenkins
+        Jenkins::Api.expects(:create_job => [])
+        Jenkins::Api.stubs(:job_names => [])
+        Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
+        Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "SUCCESS"})
+      end
+      subject.stubs(:job_exists? => false)
+      subject.stubs(:build_job => false)
+      subject.stubs(:workitem => workitem)
+      subject.build
 
-       workitem['fields']['__error__'].should eql("Jenkins job failed to start")
+      workitem['fields']['__error__'].should eql("Jenkins job failed to start")
     end
 
     it "should supply error when job fails to be created" do
@@ -259,51 +251,48 @@ describe MaestroDev::JenkinsWorker do
         'job' => 'myjob',
         'override_existing' => true}}
 
-      if @stub_jenkins
+      if stub_jenkins
         request = {:body => '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<project>\n  <actions/>\n  <description/>\n  <keepDependencies>false</keepDependencies>\n  <properties/>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\'vector\'/>\n  <concurrentBuild>false</concurrentBuild>\n  <builders>\n  </builders>\n  <publishers/>\n  <buildWrappers/>\n</project>\n', :format => :xml, :headers => {'content-type' => 'application/xml'}}
-        response = mock('response')
-        response.stubs(:code => 500, :body => 'error')
+        response = stub('response', :code => 500, :body => 'error')
         Jenkins::Api.expects(:post).with("/createItem/api/xml?name=myjob", Mocha::ParameterMatchers::Anything.new).returns(response)
         # Jenkins::Api.stubs(:job_names => [])
         # Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
       end
-      @participant.stubs(:workitem => workitem)
-      @participant.stubs(:job_exists? => false)
-      @participant.build
+      subject.stubs(:workitem => workitem)
+      subject.stubs(:job_exists? => false)
+      subject.build
 
-      @participant.error.should eql("Failed to create job myjob: 500 error")
+      subject.error.should eql("Failed to create job myjob: 500 error")
     end
 
     it "should supply error when job fails" do
-       workitem = {'fields' => {
-           'host' => 'localhost',
-           'web_path' => 'jenkins',
-           'use_ssl' => true,
-           'job' => 'CEE Buildaroo',
-           'job' => 'stomp',
-                  'override_existing' => true
-         }}
+      workitem = {'fields' => {
+        'host' => 'localhost',
+        'web_path' => 'jenkins',
+        'use_ssl' => true,
+        'job' => 'CEE Buildaroo',
+        'job' => 'stomp',
+        'override_existing' => true
+      }}
 
       #all stubs
       Jenkins::Api.stubs(:job_names => [])
       Jenkins::Api.expects(:create_job => [])
       response = mock()
       response.stubs(:code => 200, :body => {:jobs => []}.to_json)
-      @participant.expects(:get_plain_url).with("https://localhost/jenkins/api/json").returns(response)
+      subject.expects(:get_plain_url).with("https://localhost/jenkins/api/json").returns(response)
 
-       Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
-       Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
-       @participant.stubs(:build_job => true)
-       @participant.stubs(:get_test_results => nil)
-       @participant.expects(:get_build_console_for_build => "").at_least_once
-       @participant.expects(:workitem).at_least_once.returns(workitem)
-       @participant.build
+      Jenkins::Api.stubs(:job => {"nextBuildNumber" => 1})
+      Jenkins::Api.stubs(:build_details => {"building" => false, "result" => "Not SUCCESS"})
+      subject.stubs(:build_job => true)
+      subject.stubs(:get_test_results => nil)
+      subject.expects(:get_build_console_for_build => "").at_least_once
+      subject.expects(:workitem).at_least_once.returns(workitem)
+      subject.build
 
-       workitem['fields']['__error__'].should eql("Jenkins job failed")
+      workitem['fields']['__error__'].should eql("Jenkins job failed")
     end
 
   end
-  
-
   
 end
