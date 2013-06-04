@@ -1,113 +1,184 @@
-[{
-    "name" : "jenkins plugin",
-    "description" : "Run A Set Of Work Steps In Jenkins",
-    "license" : "Apache 2.0",
-    "author": "Kelly Plummer",
-    "version": "updated at build time",
-    "class": "MaestroDev::JenkinsWorker",
-    
-    "type":"ruby",
-    "dependencies":[
-      {
-        "name" : "jenkins",
-        "version" : "0.6.9",
-        "source" : "http://rubygems.org/"
-      }
-    ],
-    "task":{
-      "command" : "/jenkinsplugin/build",    
-      "inputs" :  {
-        "host":{
-          "required":true,
-          "type":"String",
-          "value":"localhost",
-          "description": "Hostname Of The Jenkins Server"
-        },
-        "port":{
-          "required":false,
-          "type":"Integer",
-          "value":8080,
-          "description": "Port Jenkins Is Running On"
-        },
-        "job":{
-          "required":true,
-          "type":"String",
-          "value":"",
-          "description": "Name Of The Jenkins Job"
-        },
-        "username":{
-          "required":false,
-          "type":"String",
-          "value":"",
-          "description": "Username for jenkins server"
-        },
-        "password":{
-          "required":false,
-          "type":"Password",
-          "value":"",
-          "description": "Password for jenkins server"
-        },
-        "use_ssl":{
-          "required":true,
-          "type":"Boolean",
-          "value":false,
-          "description": "use ssl connection"
-        },
-        "web_path":{
-          "required":false,
-          "type":"String",
-          "value":"",
-          "description": "path of the jenkins application in the server"
-        },
-        "scm_url":{
-          "required":false,
-          "type":"Url",
-          "value":"",
-          "description": "Url Of The Source Code Repository"
-        },
-        "parameters": {
-          "required": false,
-          "type": "Array",
-          "value":[],
-          "description": "Parameters to pass to the job. Name=value formatted."
-        },
-        "user_defined_axes":{
-          "required": false,
-          "type": "Array",
-          "value":[],
-          "description": "User defined axes used for a configuration matrix project"
-        },
-        "label_axes":{
-          "required": false,
-          "type": "Array",
-          "value":[],
-          "description": "Labels for a configuration matrix project"
-        },
-        "steps":{
-          "required":false,
-          "type":"Array",
-          "value":[],
-          "description": "Set Of Steps To Be Executed By Jenkins"
-        },
-        "override_existing":{
-          "required":true,
-          "type":"Boolean",
-          "value":false,
-          "description": "Overwrite existing jobs, or create if it does not exist"
-        }
-      },
-      "outputs" : {"output" : {"type" : "String"}},
-      "tool_name":"Build"
-    },
+{
     "source_types": [
     {
-      "name" : "Jenkins",
-      "options" : {
-        "host": "String",
-        "port":"Integer",
-        "username": "String",
-        "password": "Password",
-        "web_path":"String"
-      }
-    }]
-}]
+        "name": "Jenkins",
+        "options": {
+            "host": "String",
+            "port": "Integer",
+            "username": "String",
+            "password": "Password",
+            "web_path": "String"
+        }
+    }
+    ],
+    "tasks": [
+        {
+            "name": "jenkins plugin",
+            "description": "Run A Set Of Work Steps In Jenkins",
+            "license": "Apache 2.0",
+            "author": "Kelly Plummer",
+            "version": "updated at build time",
+            "class": "MaestroDev::JenkinsWorker",
+            "type": "ruby",
+            "dependencies": [ ],
+            "task": {
+                "command": "/jenkinsplugin/build",
+                "inputs": {
+                    "host": {
+                        "required": true,
+                        "type": "String",
+                        "value": "localhost",
+                        "description": "Hostname Of The Jenkins Server"
+                    },
+                    "port": {
+                        "required": false,
+                        "type": "Integer",
+                        "value": 8080,
+                        "description": "Port Jenkins Is Running On"
+                    },
+                    "job": {
+                        "required": true,
+                        "type": "String",
+                        "value": "",
+                        "description": "Name Of The Jenkins Job"
+                    },
+                    "username": {
+                        "required": false,
+                        "type": "String",
+                        "value": "",
+                        "description": "Username for jenkins server"
+                    },
+                    "password": {
+                        "required": false,
+                        "type": "Password",
+                        "value": "",
+                        "description": "Password for jenkins server"
+                    },
+                    "use_ssl": {
+                        "required": true,
+                        "type": "Boolean",
+                        "value": false,
+                        "description": "use ssl connection"
+                    },
+                    "web_path": {
+                        "required": false,
+                        "type": "String",
+                        "value": "",
+                        "description": "path of the jenkins application in the server"
+                    },
+                    "scm_url": {
+                        "required": false,
+                        "type": "Url",
+                        "value": "",
+                        "description": "Url Of The Source Code Repository"
+                    },
+                    "parameters": {
+                        "required": false,
+                        "type": "Array",
+                        "value": [],
+                        "description": "Parameters to pass to the job. Name=value formatted."
+                    },
+                    "user_defined_axes": {
+                        "required": false,
+                        "type": "Array",
+                        "value": [],
+                        "description": "User defined axes used for a configuration matrix project"
+                    },
+                    "label_axes": {
+                        "required": false,
+                        "type": "Array",
+                        "value": [],
+                        "description": "Labels for a configuration matrix project"
+                    },
+                    "steps": {
+                        "required": false,
+                        "type": "Array",
+                        "value": [],
+                        "description": "Set Of Steps To Be Executed By Jenkins"
+                    },
+                    "override_existing": {
+                        "required": true,
+                        "type": "Boolean",
+                        "value": false,
+                        "description": "Overwrite existing jobs, or create if it does not exist"
+                    }
+                },
+                "outputs": {
+                    "output": {
+                        "type": "String"
+                    }
+                },
+                "tool_name": "Build"
+            }
+        },
+        {
+            "name": "jenkins plugin",
+            "description": "Get the data from the latest build for a particular job",
+            "license": "Apache 2.0",
+            "author": "Etienne Pelletier",
+            "version": "updated at build time",
+            "class": "MaestroDev::JenkinsWorker",
+            "type": "ruby",
+            "dependencies": [ ],
+            "task": {
+                "command": "/jenkinsplugin/get_build_data",
+                "inputs": {
+                    "host": {
+                        "required": true,
+                        "type": "String",
+                        "value": "localhost",
+                        "description": "Hostname Of The Jenkins Server"
+                    },
+                    "port": {
+                        "required": false,
+                        "type": "Integer",
+                        "value": 8080,
+                        "description": "Port Jenkins Is Running On"
+                    },
+                    "job": {
+                        "required": true,
+                        "type": "String",
+                        "value": "",
+                        "description": "Name Of The Jenkins Job"
+                    },
+                    "username": {
+                        "required": false,
+                        "type": "String",
+                        "value": "",
+                        "description": "Username for jenkins server"
+                    },
+                    "password": {
+                        "required": false,
+                        "type": "Password",
+                        "value": "",
+                        "description": "Password for jenkins server"
+                    },
+                    "use_ssl": {
+                        "required": true,
+                        "type": "Boolean",
+                        "value": false,
+                        "description": "use ssl connection"
+                    },
+                    "web_path": {
+                        "required": false,
+                        "type": "String",
+                        "value": "",
+                        "description": "path of the jenkins application in the server"
+                    },
+                    "scm_url": {
+                        "required": false,
+                        "type": "Url",
+                        "value": "",
+                        "description": "Url Of The Source Code Repository"
+                    }
+                },
+                "outputs": {
+                    "output": {
+                        "type": "String"
+                    }
+                },
+                "tool_name": "Build"
+            }
+        }
+    ]
+}

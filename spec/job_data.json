@@ -1,0 +1,116 @@
+{
+    "actions" : [
+        {
+
+        }
+    ],
+    "description" : "Lucee Lib CI Build",
+    "displayName" : "Lucee Lib CI Build",
+    "displayNameOrNull" : "Lucee Lib CI Build",
+    "name" : "lucee-lib-ci",
+    "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/",
+    "buildable" : true,
+    "builds" : [
+        {
+            "number" : 22,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/"
+        },
+        {
+            "number" : 21,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/21/"
+        },
+        {
+            "number" : 20,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/20/"
+        },
+        {
+            "number" : 19,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/19/"
+        },
+        {
+            "number" : 18,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/18/"
+        },
+        {
+            "number" : 17,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/17/"
+        },
+        {
+            "number" : 16,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/16/"
+        },
+        {
+            "number" : 15,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/15/"
+        },
+        {
+            "number" : 14,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/14/"
+        },
+        {
+            "number" : 13,
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/13/"
+        }
+    ],
+    "color" : "blue",
+    "firstBuild" : {
+        "number" : 3,
+        "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/3/"
+    },
+    "healthReport" : [
+        {
+            "description" : "Test Result: 0 tests failing out of a total of 107 tests.",
+            "iconUrl" : "health-80plus.png",
+            "score" : 100
+        },
+        {
+            "description" : "Build stability: No recent builds failed.",
+            "iconUrl" : "health-80plus.png",
+            "score" : 100
+        }
+    ],
+    "inQueue" : false,
+    "keepDependencies" : false,
+    "lastBuild" : {
+        "number" : 22,
+        "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/"
+    },
+    "lastCompletedBuild" : {
+        "number" : 22,
+        "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/"
+    },
+    "lastFailedBuild" : null,
+    "lastStableBuild" : {
+        "number" : 22,
+        "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/"
+    },
+    "lastSuccessfulBuild" : {
+        "number" : 22,
+        "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/"
+    },
+    "lastUnstableBuild" : null,
+    "lastUnsuccessfulBuild" : null,
+    "nextBuildNumber" : 23,
+    "property" : [
+
+    ],
+    "queueItem" : null,
+    "concurrentBuild" : false,
+    "downstreamProjects" : [
+
+    ],
+    "scm" : {
+
+    },
+    "upstreamProjects" : [
+
+    ],
+    "modules" : [
+        {
+            "name" : "com.maestrodev.lucee:lucee-lib",
+            "url" : "https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/com.maestrodev.lucee$lucee-lib/",
+            "color" : "grey",
+            "displayName" : "Maestro luCEE Java Library"
+        }
+    ]
+}

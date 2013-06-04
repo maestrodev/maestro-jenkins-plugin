@@ -294,5 +294,74 @@ describe MaestroDev::JenkinsWorker do
     end
 
   end
-  
+
+  describe 'get_build_data' do
+
+    before(:each) do
+      @job_name = 'lucee-lib-ci'
+      @build_number = '22'
+      workitem = {'fields' => {
+          'host' => 'localhost',
+          'web_path' => 'jenkins',
+          'use_ssl' => true,
+          'job' => @job_name,
+      }}
+      subject.stubs(:workitem => workitem)
+      @job_data = IO.read(File.dirname(__FILE__) + '/job_data.json')
+      @build_results = IO.read(File.dirname(__FILE__) + '/build_results.json')
+      @test_report = IO.read(File.dirname(__FILE__) + '/test_report.json')
+
+    end
+
+    it "should retrieve the job data" do
+      job_data_response = mock
+      job_data_response.stubs(:body => @job_data)
+      subject.expects(:get_plain).with("/job/#{@job_name}/api/json").returns(job_data_response)
+      subject.get_job_data(@job_name)['name'].should == @job_name
+
+    end
+
+    it "should retrieve the test report" do
+      test_report_response = mock
+      test_report_response.stubs(:body => @test_report)
+      subject.expects(:get_plain).with("/job/#{@job_name}/#{@build_number}/testReport/api/json").returns(test_report_response)
+      subject.get_test_results(@job_name,@build_number)['totalCount'].should == 107
+    end
+
+    it "should retrieve the test data from the latest completed build" do
+
+      subject.expects(:job_exists?).with(@job_name).returns(true)
+      subject.expects(:get_build_details_for_build).with(@job_name, @build_number.to_i).returns(JSON.parse(@build_results))
+      job_data_response = mock
+      job_data_response.stubs(:body => @job_data)
+      subject.expects(:get_plain).with("/job/#{@job_name}/api/json").returns(job_data_response)
+      test_report_response = mock
+      test_report_response.stubs(:body => @test_report)
+      subject.expects(:get_plain).with("/job/#{@job_name}/#{@build_number}/testReport/api/json").returns(test_report_response)
+
+      test_meta = [{:tests => 107, :failures => 0, :skipped => 1, :passed => 106, :duration => nil}]
+      link_meta = {'build' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/', 'test' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/testReport'}
+      subject.expects(:save_output_value).with('build_number', @build_number.to_i)
+      subject.expects(:save_output_value).with('tests', test_meta)
+      subject.expects(:save_output_value).with('links', link_meta)
+
+      subject.get_build_data
+
+    end
+
+    it "should send a not_needed message if the last build number has not changed since last run" do
+      subject.expects(:job_exists?).with(@job_name).returns(true)
+      job_data_response = mock
+      job_data_response.stubs(:body => @job_data)
+      subject.expects(:read_output_value).with('build_number').returns(@build_number.to_i)
+      subject.expects(:get_plain).with("/job/#{@job_name}/api/json").returns(job_data_response)
+      subject.expects(:save_output_value).with('build_number', @build_number.to_i)
+      subject.expects(:not_needed)
+      subject.get_build_data
+    end
+
+
+
+  end
+
 end
