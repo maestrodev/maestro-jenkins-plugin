@@ -13,7 +13,7 @@
     ],
     "tasks": [
         {
-            "name": "jenkins plugin",
+            "name": "jenkins run",
             "description": "Run A Set Of Work Steps In Jenkins",
             "license": "Apache 2.0",
             "author": "Kelly Plummer",
@@ -112,7 +112,7 @@
             }
         },
         {
-            "name": "jenkins plugin",
+            "name": "jenkins sync",
             "description": "Get the data from the latest build for a particular job",
             "license": "Apache 2.0",
             "author": "Etienne Pelletier",
