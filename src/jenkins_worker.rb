@@ -160,10 +160,12 @@ module MaestroDev
       end
 
       last_completed_build = job_data['lastCompletedBuild']
+      last_output_build_number = read_output_value('build_number')
       build_number = (last_completed_build ?  last_completed_build['number'] : nil)
+
       save_output_value('build_number', build_number) if build_number
 
-      if build_number.nil? or build_number == read_output_value('build_number')
+      if build_number.nil? or build_number == last_output_build_number
         Maestro.log.info("No completed Jenkins build found for job #{job_name}")
         write_output("No new completed build found")
         not_needed

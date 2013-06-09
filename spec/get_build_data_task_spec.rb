@@ -13,16 +13,18 @@ describe MaestroDev::JenkinsWorker do
       @job_name = 'lucee-lib-ci'
       @build_number = '22'
 
-      workitem = {'fields' => {
+      @workitem = {'fields' => {
           'host' => 'localhost',
-          'web_path' => 'jenkins',
-          'use_ssl' => true,
-          'job' => @job_name,
+          'port' => 443,
+          'username' => 'admin',
+          'password' => 'admin',
+          'web_path' => '/',
+          'use_ssl' => false,
+          'job' => 'lucee-lib-ci',
       }}
 
       subject.stubs(:write_output)
-      subject.stubs(:workitem => workitem)
-      subject.setup
+      subject.stubs(:workitem => @workitem)
 
       @job_data = IO.read(File.dirname(__FILE__) + '/job_data.json')
       @build_results = IO.read(File.dirname(__FILE__) + '/build_results.json')
