@@ -24,7 +24,7 @@ describe MaestroDev::JenkinsWorker do
       }}
 
       subject.stubs(:write_output)
-      subject.stubs(:workitem => @workitem)
+      subject.workitem= @workitem
 
       @job_data = IO.read(File.dirname(__FILE__) + '/job_data.json')
       @build_results = IO.read(File.dirname(__FILE__) + '/build_results.json')
@@ -45,11 +45,10 @@ describe MaestroDev::JenkinsWorker do
 
       test_meta = [{:tests => 107, :failures => 0, :skipped => 1, :passed => 106, :duration => nil}]
       link_meta = {'build' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/', 'test' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/testReport'}
-      subject.expects(:save_output_value).with('build_number', @build_number.to_i)
-      subject.expects(:save_output_value).with('tests', test_meta)
-      subject.expects(:save_output_value).with('links', link_meta)
 
       subject.get_build_data
+      @workitem['fields']['__context_outputs__']['build_number'].should == 22
+      @workitem['fields']['__context_outputs__']['tests'].should == test_meta
 
     end
 

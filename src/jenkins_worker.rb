@@ -172,6 +172,8 @@ module MaestroDev
         return
       end
 
+      log_output("Last completed build number: #{build_number}")
+
       begin
         details = get_build_details_for_build(job_name, build_number)
       rescue Net::HTTPServerException => e
@@ -469,7 +471,7 @@ module MaestroDev
         if test_count.nil?
           test_count = fail_count + skip_count + pass_count
         end
-
+        log_output "Test results: test count=#{test_count}, failures=#{fail_count}, skipped=#{skip_count}, passed=#{pass_count}, duration=#{test_results['duration']}"
         test_meta = [{:tests => test_count, :failures => fail_count, :skipped => skip_count, :passed => pass_count, :duration => test_results['duration']}]
         save_output_value('tests', test_meta)
       end
