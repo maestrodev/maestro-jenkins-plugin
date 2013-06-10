@@ -13,8 +13,14 @@ module MaestroDev
     end
 
     def get_http(uri)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == "https")
+      if ENV['http_proxy']
+        proxy_uri = URI.parse(ENV['http_proxy'])
+        http = Net::HTTP::Proxy(proxy_uri.host, proxy_uri.port).new(uri.host, uri.port)
+        http.use_ssl = (uri.scheme == "https")
+      else
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = (uri.scheme == "https")
+      end
       http
     end
 
