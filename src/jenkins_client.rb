@@ -14,6 +14,7 @@ module MaestroDev
 
     def get_http(uri)
       if ENV['http_proxy']
+        Maestro.log.debug "Connecting through proxy #{ENV['http_proxy']}"
         proxy_uri = URI.parse(ENV['http_proxy'])
         http = Net::HTTP::Proxy(proxy_uri.host, proxy_uri.port).new(uri.host, uri.port)
         http.use_ssl = (uri.scheme == "https")
