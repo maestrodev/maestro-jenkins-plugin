@@ -55,7 +55,9 @@ module MaestroDev
 
       http.start do |http|
         req = Net::HTTP::Get.new(uri.path)
-        req.basic_auth(get_field('username'),get_field('password'))
+        if get_field('username').to_s == ''
+          req.basic_auth(get_field('username'),get_field('password'))
+        end
         response = http.request(req)
         case response
           when Net::HTTPSuccess     then
