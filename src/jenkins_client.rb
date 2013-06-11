@@ -55,7 +55,7 @@ module MaestroDev
 
       http.start do |http|
         req = Net::HTTP::Get.new(uri.path)
-        if get_field('username').to_s == ''
+        if get_field('username').to_s != ''
           req.basic_auth(get_field('username'),get_field('password'))
         end
         response = http.request(req)
@@ -93,7 +93,9 @@ module MaestroDev
         path = uri.path
         path += "?#{uri.query}" unless uri.query.nil?
         req = Net::HTTP::Post.new(path)
-        req.basic_auth(get_field('username'),get_field('password'))
+        if get_field('username').to_s != ''
+          req.basic_auth(get_field('username'),get_field('password'))
+        end
         response = http.request(req)
 
         case response
