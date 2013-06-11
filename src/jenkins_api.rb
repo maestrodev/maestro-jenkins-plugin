@@ -1,6 +1,11 @@
 module Jenkins
   module Api
 
+    if ENV['http_proxy']
+      uri = URI.parse(ENV['http_proxy'])
+      http_proxy uri.host, uri.port
+    end
+
     @error
     def self.error
       @error
