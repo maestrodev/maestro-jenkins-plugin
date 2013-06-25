@@ -38,6 +38,7 @@ describe MaestroDev::JenkinsWorker do
           :duration => nil}],
         'links' => {
           'build' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/',
+          'log' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/console',
           'test' => 'https://maestro.maestrodev.com/jenkins/job/lucee-lib-ci/22/testReport'}})
     end
 
