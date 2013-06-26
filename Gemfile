@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 gem 'maestro_plugin', '>=0.0.4'
 
 #dependencies
-gem 'jenkins_api_client', '>=0.13.0.maestrodev'
+gem 'jenkins_api_client', '>=0.12.1'
 gem 'andand', '>=1.3.1'
 gem 'builder', '~>2.1.2'
 
