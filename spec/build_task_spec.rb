@@ -151,7 +151,7 @@ describe MaestroDev::JenkinsWorker do
 
       subject.perform(:build, @workitem)
 
-      subject.error.should eql("Failed to create job Buildaroo: JenkinsApi::Exceptions::InternelServerErrorException, Internel Server Error. Perhaps the in-memory configuration of Jenkins is different from the disk configuration. Please try to reload the configuration ")
+      subject.error.should match(/Failed to create job Buildaroo: JenkinsApi::Exceptions::InternelServerErrorException, (Error: )?Internel Server Error. Perhaps the in-memory configuration of Jenkins is different from the disk configuration. Please try to reload the configuration /)
     end
 
     it "should supply error when job fails" do
