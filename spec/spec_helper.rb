@@ -29,7 +29,7 @@ RSpec.configure do |config|
   config.mock_framework = :mocha
   
   config.before(:each) do
-    MaestroDev::JenkinsWorker.mock!
+    MaestroDev::JenkinsPlugin::JenkinsWorker.mock!
     subject.stubs(:write_output)
     @workitem = {'fields' => {
       'host' => 'localhost',

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe MaestroDev::JenkinsWorker do
+describe MaestroDev::JenkinsPlugin::JenkinsWorker do
 
   describe 'build()' do
     
