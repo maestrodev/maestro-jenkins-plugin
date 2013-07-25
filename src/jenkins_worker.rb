@@ -8,6 +8,9 @@ module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
     attr_reader :client
 
+    JENKINS_SUCCESS = 'SUCCESS'
+    JENKINS_UNSTABLE = 'UNSTABLE'
+
     def build
       Maestro.log.info "Starting JENKINS build task..."
       validate_inputs
@@ -166,7 +169,11 @@ module MaestroDev
         return false
       end
 
-      success = details['result'] == 'SUCCESS'
+      jenkins_result = details['result']
+
+      # If JENKINS reports SUCCESS, then we succeed
+      # Jenkins can also report 'UNSTABLE', which is Jenkins-ese means 'SUCCESS' with issues (like acceptable test failures)
+      success = jenkins_result == JENKINS_SUCCESS || (!@fail_on_unstable && jenkins_result == JENKINS_UNSTABLE)
 
       url_meta = {}
 #      url_meta['job'] =  # Maybe add root for job at some point
@@ -292,17 +299,36 @@ module MaestroDev
       set_error("Missing Fields: #{missing.join(",")}") unless missing.empty?
     end
 
+    def booleanify(value)
+      res = false
+
+      if value
+        if value.is_a?(TrueClass) || value.is_a?(FalseClass)
+          res = value
+        elsif value.is_a?(Fixnum)
+          res = value != 0
+        elsif value.respond_to?(:to_s)
+          value = value.to_s.downcase
+
+          res = (value == 't' || value == 'true')
+        end
+      end
+
+      res
+    end
+
     # Returns the jenkins API endpoint uri or false if host is not set
     # (shouldn't happen as it is validated before)
     def setup
-      host = workitem['fields']['host']
-      port = workitem['fields']['port'] || 80
-      username = workitem['fields']['username']
-      password = workitem['fields']['password']
+      host = get_field('host')
+      port = get_field('port', 80)
+      username = get_field('username')
+      password = get_field('password')
+      @fail_on_unstable = booleanify(get_field('fail_on_unstable', false))
       @query_interval = 3 # every how many seconds to ping jenkins for console updates
 
-      use_ssl = workitem['fields']['use_ssl'] || false
-      @web_path = workitem['fields']['web_path'] || '/'
+      use_ssl = get_field('use_ssl', false)
+      @web_path = get_field('web_path', '/')
       @web_path = '/' + @web_path.gsub(/^\//, '').gsub(/\/$/, '')
 
       options = { :server_ip => host,

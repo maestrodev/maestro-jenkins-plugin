@@ -102,6 +102,12 @@
                         "type": "Boolean",
                         "value": false,
                         "description": "Overwrite existing jobs, or create if it does not exist"
+                    },
+                    "fail_on_unstable": {
+                        "required": false,
+                        "type": "Boolean",
+                        "value": false,
+                        "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
                     }
                 },
                 "outputs": {
@@ -165,6 +171,12 @@
                         "type": "String",
                         "value": "",
                         "description": "path of the jenkins application in the server"
+                    },
+                    "fail_on_unstable": {
+                        "required": false,
+                        "type": "Boolean",
+                        "value": false,
+                        "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
                     }
                 },
                 "outputs": {
