@@ -14,14 +14,14 @@ describe MaestroDev::JenkinsWorker do
 
     it "should retrieve the build data" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => @job_data)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => @job_data)
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/22//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/22//api/json').
         to_return(:body => @build_results)
       # Request for test report
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/22/testReport/api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/22/testReport/api/json').
         to_return(:body => @test_report)
 
       subject.perform(:get_build_data, @workitem)
@@ -46,9 +46,9 @@ describe MaestroDev::JenkinsWorker do
       @workitem['fields']['__previous_context_outputs__'] = {'build_number' => 22}
 
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => @job_data)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => @job_data)
 
       subject.expects(:not_needed)
 
