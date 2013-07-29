@@ -19,7 +19,7 @@
             "license": "Apache 2.0",
             "author": "Kelly Plummer",
             "version": "updated at build time",
-            "class": "MaestroDev::JenkinsPlugin::JenkinsWorker",
+            "class": "MaestroDev::Plugin::JenkinsWorker",
             "type": "ruby",
             "dependencies": [ ],
             "task": {
@@ -124,7 +124,7 @@
             "license": "Apache 2.0",
             "author": "Etienne Pelletier",
             "version": "updated at build time",
-            "class": "MaestroDev::JenkinsPlugin::JenkinsWorker",
+            "class": "MaestroDev::Plugin::JenkinsWorker",
             "type": "ruby",
             "dependencies": [ ],
             "task": {

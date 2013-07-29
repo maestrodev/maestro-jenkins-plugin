@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-gem 'maestro_plugin', '>=0.0.4'
+gem 'maestro_plugin', '>=0.0.14'
 
 #dependencies
 gem 'jenkins_api_client', '>=0.12.1'

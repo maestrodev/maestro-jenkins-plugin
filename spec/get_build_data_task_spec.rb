@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-describe MaestroDev::JenkinsPlugin::JenkinsWorker do
+describe MaestroDev::Plugin::JenkinsWorker do
   
   describe 'get_build_data' do
 
