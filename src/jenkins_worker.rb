@@ -10,6 +10,8 @@ module MaestroDev
     class JenkinsWorker < Maestro::MaestroWorker
       attr_reader :client
 
+      SCM_GIT = 'git'
+      SCM_SVN = 'svn' # Change this if Jenkins calls it something other than svn in changeSet 'kind' value
       JENKINS_SUCCESS = 'SUCCESS'
       JENKINS_UNSTABLE = 'UNSTABLE'
 
@@ -24,9 +26,9 @@ module MaestroDev
         job_exists_already = @client.job.exists?(job_name)
 
         if !job_exists_already and !workitem['fields']['override_existing']
-          raise PluginError("Job '#{job_name}' Not Found And No Override Allowed")
+          raise PluginError, "Job '#{job_name}' Not Found And No Override Allowed"
         end
-        write_output "Job '#{job_name}' found\n"
+        write_output "\nJob '#{job_name}' found"
 
         if(workitem['fields']['override_existing'])
           unless job_exists_already
@@ -74,8 +76,11 @@ module MaestroDev
         # Last pos is used for incremental console output
         # It is updated upon return of the get_console_output method
         last_pos = 0
-
         failures = 0
+
+        # Since output lines are prefixed with \n, need to make sure the last line we wrote is closed-off
+        write_output("\n", :buffer => true)
+
         begin
           details = @client.job.get_build_details(job_name, build_number)
           latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
@@ -102,7 +107,7 @@ module MaestroDev
       # Get up to date data without requiring a build composition/task to be run.
       def get_build_data
 
-      Maestro.log.info 'Retrieving build data from Jenkins'
+        Maestro.log.info 'Retrieving build data from Jenkins'
         validate_inputs
 
         Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}"
@@ -125,7 +130,7 @@ module MaestroDev
 
         if build_number.nil? or build_number == last_output_build_number
           Maestro.log.info("No completed Jenkins build found for job #{job_name}")
-          write_output("No new completed build found")
+          write_output("\nNo new completed build found")
           not_needed
           return
         end
@@ -149,6 +154,7 @@ module MaestroDev
         end
 
         jenkins_result = details['result']
+        save_output_value('build_result', jenkins_result)
 
         # If JENKINS reports SUCCESS, then we succeed
         # Jenkins can also report 'UNSTABLE', which is Jenkins-ese means 'SUCCESS' with issues (like acceptable test failures)
@@ -169,9 +175,50 @@ module MaestroDev
           add_link("Test Result", "#{details["url"]}testReport")
         end
 
+        # If there is a changeset with stuff in it, see if we can extract committer info
+        if details['changeSet'] && details['changeSet']['items'] && details['changeSet']['items'].size > 0
+          # We can only really store a single committer per build, so search for the most recent
+          # (jenkins appears to store a timestamp field in each 'item'
+          scm = details['changeSet']['kind']
+          save_output_value('scm_kind', scm)
+          selected_item = nil
+
+          details['changeSet']['items'].each do |item|
+            selected_item = item if selected_item.nil? || item['timestamp'] > selected_item['timestamp']
+          end
+
+          if selected_item
+            author_name = nil
+            author_email = nil
+
+            # If it turns out that svn doesn't use 'id' we can pull based on 'scm' var
+            commit_id = selected_item['id']
+
+            save_output_value('reference', commit_id) if scm == SCM_GIT
+            save_output_value('revision', commit_id) if scm == SCM_SVN
+            save_output_value('commit_id', commit_id)
+
+            if selected_item['author']
+              author_name = selected_item['author']['fullName']
+              author_user = @client.user.get(author_name)
+
+              if author_user && author_user['property']
+                address_property = author_user['property'].select { |prop| prop.has_key?('address') }.first
+
+                author_email = address_property['address'] if address_property
+              end
+
+              save_output_value('author_email', author_email)
+              save_output_value('author_name', author_name)
+            end
+
+            write_output("\n#{scm} commit id #{commit_id} authored by #{author_name} (#{author_email})", :buffer => true)
+          end
+        end
+
         log_output("Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully")
 
-        workitem['fields']['__error__'] = "Jenkins job failed" if !success
+        raise PluginError, "Jenkins job failed" if !success
         success
       end
 
@@ -265,7 +312,7 @@ module MaestroDev
         # So no need to check response code
         true
       rescue JenkinsApi::Exceptions::ApiException => e
-        write_output("Got error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
+        write_output("\nGot error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
         false
       end
 
@@ -370,7 +417,7 @@ module MaestroDev
 
       def log_output(msg, level=:debug)
         Maestro.log.send(level, msg)
-        write_output "#{msg}\n"
+        write_output "\n#{msg}"
       end
     end
   end

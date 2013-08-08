@@ -30,6 +30,7 @@ describe MaestroDev::Plugin::JenkinsWorker do
       @workitem['fields']['output'].should be_nil
       @workitem['fields']['__context_outputs__'].should eql({
         'build_number' => 22,
+        'build_result' => 'SUCCESS',
         'tests' => [{
           :tests => 107,
           :failures => 0,
