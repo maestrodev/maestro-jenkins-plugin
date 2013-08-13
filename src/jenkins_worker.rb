@@ -307,7 +307,7 @@ module MaestroDev
         # So no need to check response code
         true
       rescue JenkinsApi::Exceptions::ApiException => e
-        write_output("\nGot error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
+        log_output("\nGot error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
         false
       end
 
