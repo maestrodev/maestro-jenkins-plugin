@@ -33,7 +33,7 @@ GEM
     mixlib-shellout (1.1.0)
     mocha (0.14.0)
       metaclass (~> 0.0.1)
-    multi_json (1.7.7)
+    multi_json (1.7.9)
     nokogiri (1.5.10-java)
     rake (10.0.4)
     rcov (0.9.11-java)
@@ -63,7 +63,7 @@ DEPENDENCIES
   builder (~> 2.1.2)
   jenkins_api_client (>= 0.12.1)
   maestro-plugin-rake-tasks
-  maestro_plugin (>= 0.0.4)
+  maestro_plugin (= 0.0.5)
   mocha (>= 0.13.0)
   rcov (= 0.9.11)
   rspec
