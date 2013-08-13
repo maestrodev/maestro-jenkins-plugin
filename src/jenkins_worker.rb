@@ -76,9 +76,6 @@ module MaestroDev
         return
       end
 
-      log_output("Build Number Is #{build_number}")
-      save_output_value('build_number', build_number)
-
       # Last pos is used for incremental console output
       # It is updated upon return of the get_console_output method
       last_pos = 0
@@ -89,12 +86,11 @@ module MaestroDev
         write_output(latest_output['output'])
         last_pos = latest_output['size']
         sleep(query_interval)
-      rescue JenkinsApi::Exceptions::NotFoundException
-      rescue Timeout::Error
+      rescue JenkinsApi::Exceptions::NotFoundException, Timeout::Error => e
         Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
         failures += 1
         if failures > 5
-          set_error("Timed out trying to get build details for #{job_name} build number #{build_number}")
+          set_error("Timed out trying to get build details for #{job_name} build number #{build_number} [#{e.class}]")
           return
         end
         sleep(query_interval)

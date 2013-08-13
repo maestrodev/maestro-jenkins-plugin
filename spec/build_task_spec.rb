@@ -101,7 +101,7 @@ describe MaestroDev::JenkinsWorker do
 
       subject.perform(:build, workitem)
 
-      subject.error.should eq("Timed out trying to get build details for Buildaroo build number 1")
+      subject.error.should eq("Timed out trying to get build details for Buildaroo build number 1 [Timeout::Error]")
     end
 
     context "when building jobs with user defined axes" do
@@ -142,19 +142,35 @@ describe MaestroDev::JenkinsWorker do
       end
     end
 
-    it "should supply error when job fails to start" do
-      # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
-      # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
-      # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
-      # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:status => 400, :body => 'What *did* you do?')
+    context "when job fails to start" do
+      before do
+        # Request for jenkins root, used to get list of projects
+        stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+        # Request to create Buildaroo job
+        stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
+        # Request for details about Buildroo project
+        stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      end
 
-      subject.perform(:build, workitem)
+      context "when fails immediately" do
+        before do
+          # Request to kick off a build
+          stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:status => 400, :body => 'What *did* you do?')
+          subject.perform(:build, workitem)
+        end
+        its(:error) { should eq("Jenkins job failed to start") }
+      end
 
-      subject.error.should eq("Jenkins job failed to start")
+      context "when job is not created" do
+        before do
+          # Request to kick off a build
+          stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:status => 200, :body => 'ok')
+          # The job is not actually created (yes, it happens)
+          stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').to_return(:status => 404)
+          Timeout::timeout(10) { subject.perform(:build, workitem) }
+        end
+        its(:error) { should eq("Timed out trying to get build details for Buildaroo build number 1 [JenkinsApi::Exceptions::NotFound]") }
+      end
     end
 
     it "should supply error when job fails to be created" do
