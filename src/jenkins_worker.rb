@@ -83,8 +83,7 @@ module MaestroDev
         write_output(latest_output['output'])
         last_pos = latest_output['size']
         sleep(@query_interval)
-      rescue JenkinsApi::Exceptions::NotFoundException
-      rescue Timeout::Error
+      rescue JenkinsApi::Exceptions::NotFoundException, Timeout::Error
         Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
         failures += 1
         if failures > 5
@@ -279,7 +278,7 @@ module MaestroDev
       # So no need to check response code
       true
     rescue JenkinsApi::Exceptions::ApiException => e
-      write_output("Got error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
+      log_output("Got error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
       false
     end
 

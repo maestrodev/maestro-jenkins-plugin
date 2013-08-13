@@ -14,27 +14,27 @@ describe MaestroDev::JenkinsWorker do
 
     it "should build job with jenkins (create job)" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/build').to_return(:body => '')
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:body => '')
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').
         to_return(:status => 404).then.
         to_return(:body => BUILDAROO_STATUS_BUILDING).then.
         to_return(:body => BUILDAROO_STATUS_SUCCESS)
       # Request for log text of build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=0').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=0').
         to_return(:body => BUILDAROO_CONSOLE_1, :headers => {'X-Text-Size' => 100, 'X-More-Data' => true})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=100').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=100').
         to_return(:body => BUILDAROO_CONSOLE_2, :headers => {'X-Text-Size' => 300})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=300').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=300').
         to_return(:body => BUILDAROO_CONSOLE_3, :headers => {'X-Text-Size' => 300})
       # Request for test report
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/testReport/api/json').to_return(:status => 404)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/testReport/api/json').to_return(:status => 404, :body => 'Not Found')
 
       subject.perform(:build, @workitem)
 
@@ -46,29 +46,29 @@ describe MaestroDev::JenkinsWorker do
       @workitem['fields']['parameters'] = [ 'param1=value1', 'param2=value2' ]
 
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/buildWithParameters').
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/buildWithParameters').
         with(:body => {:param1 => 'value1', :param2 => 'value2'}).
         to_return(:body => '')
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').
         to_return(:status => 404).then.
         to_return(:body => BUILDAROO_STATUS_BUILDING).then.
         to_return(:body => BUILDAROO_STATUS_SUCCESS)
       # Request for log text of build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=0').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=0').
         to_return(:body => BUILDAROO_CONSOLE_1, :headers => {'X-Text-Size' => 100, 'X-More-Data' => true})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=100').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=100').
         to_return(:body => BUILDAROO_CONSOLE_2, :headers => {'X-Text-Size' => 300})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=300').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=300').
         to_return(:body => BUILDAROO_CONSOLE_3, :headers => {'X-Text-Size' => 300})
       # Request for test report
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/testReport/api/json').to_return(:status => 404)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/testReport/api/json').to_return(:status => 404, :body => 'Not Found')
 
       subject.perform(:build, @workitem)
 
@@ -78,15 +78,15 @@ describe MaestroDev::JenkinsWorker do
 
     it "should fail if build details fails to respond" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/build').to_return(:body => '')
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:body => '')
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').
         to_timeout
 
       subject.perform(:build, @workitem)
@@ -100,27 +100,27 @@ describe MaestroDev::JenkinsWorker do
       @workitem['fields']['steps'] = ['ls -la /']
 
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/build').to_return(:body => '')
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:body => '')
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').
         to_return(:status => 404).then.
         to_return(:body => BUILDAROO_STATUS_BUILDING).then.
         to_return(:body => BUILDAROO_STATUS_SUCCESS)
       # Request for log text of build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=0').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=0').
         to_return(:body => BUILDAROO_CONSOLE_1, :headers => {'X-Text-Size' => 100, 'X-More-Data' => true})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=100').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=100').
         to_return(:body => BUILDAROO_CONSOLE_2, :headers => {'X-Text-Size' => 300})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=300').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=300').
         to_return(:body => BUILDAROO_CONSOLE_3, :headers => {'X-Text-Size' => 300})
       # Request for test report
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/testReport/api/json').to_return(:status => 404)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/testReport/api/json').to_return(:status => 404, :body => 'Not Found')
 
       subject.perform(:build, @workitem)
 
@@ -130,13 +130,13 @@ describe MaestroDev::JenkinsWorker do
 
     it "should supply error when job fails to start" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/build').to_return(:status => 400)
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:status => 400, :body => 'Broken')
 
       subject.perform(:build, @workitem)
 
@@ -145,38 +145,38 @@ describe MaestroDev::JenkinsWorker do
 
     it "should supply error when job fails to be created" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo').to_return(:status => 500, :body => 'error')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo').to_return(:status => 500, :body => 'error')
 
       subject.perform(:build, @workitem)
 
-      subject.error.should eql("Failed to create job Buildaroo: JenkinsApi::Exceptions::InternelServerErrorException, Internel Server Error. Perhaps the in-memory configuration of Jenkins is different from the disk configuration. Please try to reload the configuration ")
+      subject.error.should start_with("Failed to create job Buildaroo: JenkinsApi::Exceptions::InternalServerError")
     end
 
     it "should supply error when job fails" do
       # Request for jenkins root, used to get list of projects
-      stub_request(:get,  'http://localhost:8080//api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
+      stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080//createItem?name=Buildaroo')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo')
       # Request for details about Buildroo project
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/api/json').to_return(:body => BUILDAROO_DETAILS)
       # Request to kick off a build
-      stub_request(:post, 'http://localhost:8080//job/Buildaroo/build').to_return(:body => '')
+      stub_request(:post, 'http://localhost:8080/job/Buildaroo/build').to_return(:body => '')
       # Request for status of a build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1//api/json').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1//api/json').
         to_return(:status => 404).then.
         to_return(:body => BUILDAROO_STATUS_BUILDING).then.
         to_return(:body => BUILDAROO_STATUS_FAILED)
       # Request for log text of build
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=0').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=0').
         to_return(:body => BUILDAROO_CONSOLE_1, :headers => {'X-Text-Size' => 100, 'X-More-Data' => true})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=100').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=100').
         to_return(:body => BUILDAROO_CONSOLE_2, :headers => {'X-Text-Size' => 300})
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/logText/progressiveText?start=300').
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/logText/progressiveText?start=300').
         to_return(:body => BUILDAROO_CONSOLE_3, :headers => {'X-Text-Size' => 300})
       # Request for test report
-      stub_request(:get,  'http://localhost:8080//job/Buildaroo/1/testReport/api/json').to_return(:status => 404)
+      stub_request(:get,  'http://localhost:8080/job/Buildaroo/1/testReport/api/json').to_return(:status => 404, :body => 'Not Found')
 
       subject.perform(:build, @workitem)
 
