@@ -94,12 +94,11 @@ module MaestroDev
           write_output(latest_output['output'])
           last_pos = latest_output['size']
           sleep(query_interval)
-        rescue JenkinsApi::Exceptions::NotFoundException
-        rescue Timeout::Error
+        rescue JenkinsApi::Exceptions::NotFoundException, Timeout::Error => e
           Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
           failures += 1
           if failures > 5
-            raise PluginError, "Timed out trying to get build details for #{job_name} build number #{build_number}"
+            raise PluginError, "Timed out trying to get build details for #{job_name} build number #{build_number} [#{e.class}]"
           end
           sleep(query_interval)
         end while details.nil? or details.is_a?(FalseClass) or (details.is_a?(Hash) and details["building"])
