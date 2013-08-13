@@ -8,6 +8,13 @@ module MaestroDev
   class JenkinsWorker < Maestro::MaestroWorker
     attr_reader :client
 
+    # every how many seconds to ping jenkins for console updates
+    attr_accessor :query_interval
+
+    def initialize
+      @query_interval = 3
+    end
+
     def build
       Maestro.log.info "Starting JENKINS build task..."
       validate_inputs
@@ -75,14 +82,13 @@ module MaestroDev
       # Last pos is used for incremental console output
       # It is updated upon return of the get_console_output method
       last_pos = 0
-
       failures = 0
       begin
         details = @client.job.get_build_details(job_name, build_number)
         latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
         write_output(latest_output['output'])
         last_pos = latest_output['size']
-        sleep(@query_interval)
+        sleep(query_interval)
       rescue JenkinsApi::Exceptions::NotFoundException
       rescue Timeout::Error
         Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
@@ -91,7 +97,7 @@ module MaestroDev
           set_error("Timed out trying to get build details for #{job_name} build number #{build_number}")
           return
         end
-        sleep(@query_interval)
+        sleep(query_interval)
       end while details.nil? or details.is_a?(FalseClass) or (details.is_a?(Hash) and details["building"])
 
       latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
@@ -299,7 +305,6 @@ module MaestroDev
       port = workitem['fields']['port'] || 80
       username = workitem['fields']['username']
       password = workitem['fields']['password']
-      @query_interval = 3 # every how many seconds to ping jenkins for console updates
 
       use_ssl = workitem['fields']['use_ssl'] || false
       @web_path = workitem['fields']['web_path'] || '/'
