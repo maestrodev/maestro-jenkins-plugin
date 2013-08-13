@@ -10,10 +10,17 @@ module MaestroDev
     class JenkinsWorker < Maestro::MaestroWorker
       attr_reader :client
 
+      # every how many seconds to ping jenkins for console updates
+      attr_accessor :query_interval
+
       SCM_GIT = 'git'
       SCM_SVN = 'svn' # Change this if Jenkins calls it something other than svn in changeSet 'kind' value
       JENKINS_SUCCESS = 'SUCCESS'
       JENKINS_UNSTABLE = 'UNSTABLE'
+
+      def initialize
+        @query_interval = 3
+      end
 
       def build
         validate_inputs
@@ -86,7 +93,7 @@ module MaestroDev
           latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
           write_output(latest_output['output'])
           last_pos = latest_output['size']
-          sleep(@query_interval)
+          sleep(query_interval)
         rescue JenkinsApi::Exceptions::NotFoundException
         rescue Timeout::Error
           Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
@@ -94,7 +101,7 @@ module MaestroDev
           if failures > 5
             raise PluginError, "Timed out trying to get build details for #{job_name} build number #{build_number}"
           end
-          sleep(@query_interval)
+          sleep(query_interval)
         end while details.nil? or details.is_a?(FalseClass) or (details.is_a?(Hash) and details["building"])
 
         latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
@@ -161,7 +168,7 @@ module MaestroDev
         success = jenkins_result == JENKINS_SUCCESS || (!@fail_on_unstable && jenkins_result == JENKINS_UNSTABLE)
 
         url_meta = {}
-#        url_meta['job'] =  # Maybe add root for job at some point
+        # url_meta['job'] =  # Maybe add root for job at some point
         url_meta['build'] = details['url']
         url_meta['log'] = "#{details['url']}console"
 
@@ -295,17 +302,6 @@ module MaestroDev
           @client.job.build(job_name, params)
         else
           @client.job.build(job_name)
-#          begin
-#            response = post_plain "/job/#{job_name}/build"
-#          rescue Net::HTTPServerException => e
-#            Maestro.log.debug "Error building job, trying with parameterized API call: #{e}"
-#            # it may be a build with parameters, launch it with the default parameters
-#            if e.response.code == "405"
-#              response = post_plain "/job/#{job_name}/buildWithParameters"
-#            else
-#              raise e
-#            end
-#          end
         end
 
         # If we get this far the API hasn't detected an error response (it would raise Exception)
@@ -351,7 +347,6 @@ module MaestroDev
         username = get_field('username')
         password = get_field('password')
         @fail_on_unstable = booleanify(get_field('fail_on_unstable', false))
-        @query_interval = 3 # every how many seconds to ping jenkins for console updates
 
         use_ssl = get_field('use_ssl', false)
         @web_path = get_field('web_path', '/')

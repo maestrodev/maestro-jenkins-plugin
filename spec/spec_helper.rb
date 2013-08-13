@@ -30,7 +30,6 @@ RSpec.configure do |config|
   
   config.before(:each) do
     MaestroDev::Plugin::JenkinsWorker.mock!
-    subject.stubs(:write_output)
     @workitem = {'fields' => {
       'host' => 'localhost',
       "port" => '8080',
@@ -39,6 +38,7 @@ RSpec.configure do |config|
       'scm_url' => 'git://github.com/maestrodev/CEE.git',
       'steps' => ['bundle', 'rake'],
       'override_existing' => true}}
+    subject.query_interval = 1
   end
   
 end
