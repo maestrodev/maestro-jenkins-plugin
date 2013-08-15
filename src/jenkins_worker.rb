@@ -197,8 +197,8 @@ module MaestroDev
             author_name = nil
             author_email = nil
 
-            # If it turns out that svn doesn't use 'id' we can pull based on 'scm' var
-            commit_id = selected_item['id']
+            # Both GIT and SVN use commitId
+            commit_id = selected_item['commitId']
 
             save_output_value('reference', commit_id) if scm == SCM_GIT
             save_output_value('revision', commit_id) if scm == SCM_SVN
