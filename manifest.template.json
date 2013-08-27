@@ -1,4 +1,5 @@
 {
+  "image": "jenkins.png",
     "source_types": [
     {
         "name": "Jenkins",
@@ -108,6 +109,18 @@
                         "type": "Boolean",
                         "value": false,
                         "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
+                    },
+                    "build_start_timeout": {
+                        "required": false,
+                        "type": "Integer",
+                        "value": 60,
+                        "description": "How long to wait for Jenkins to start building"
+                    },
+                    "cancel_on_build_start_timeout": {
+                        "required": false,
+                        "type": "Boolean",
+                        "value": true,
+                        "description": "Attempt to cancel the build if Jenkins doesn't start building within the timeout"
                     }
                 },
                 "outputs": {

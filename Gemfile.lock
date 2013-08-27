@@ -25,7 +25,7 @@ GEM
       nokogiri
       rake (>= 0.9.2)
       zippy
-    maestro_plugin (0.0.16)
+    maestro_plugin (0.0.17)
       json (>= 1.4.6)
       logging (= 1.8.0)
       rubyzip (= 0.9.8)
@@ -63,7 +63,7 @@ DEPENDENCIES
   builder (~> 2.1.2)
   jenkins_api_client (= 0.14.0)
   maestro-plugin-rake-tasks
-  maestro_plugin (>= 0.0.14)
+  maestro_plugin (>= 0.0.17)
   mocha (>= 0.13.0)
   rcov (= 0.9.11)
   rspec
