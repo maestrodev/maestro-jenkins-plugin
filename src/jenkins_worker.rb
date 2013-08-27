@@ -18,66 +18,41 @@ module MaestroDev
       JENKINS_SUCCESS = 'SUCCESS'
       JENKINS_UNSTABLE = 'UNSTABLE'
 
+      # How long between polls of the queued job?
+      JOB_START_POLL_INTERVAL = 2
+
       def initialize
         @query_interval = 3
       end
 
       def build
-        validate_inputs
-
-        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}, scm_url = #{workitem['fields']['scm_url']}, steps = #{workitem['fields']['steps']},user_defined_axes = #{workitem['fields']['user_defined_axes']}"
-        log_output("Beginning Process For Jenkins Job #{job_name}")
+        validate_build_parameters
 
         setup
 
-        job_exists_already = @client.job.exists?(job_name)
+        job_exists_already = @client.job.exists?(@job)
 
-        if !job_exists_already and !workitem['fields']['override_existing']
-          raise PluginError, "Job '#{job_name}' Not Found And No Override Allowed"
+        if !job_exists_already and !@override_existing
+          raise PluginError, "Job '#{@job}' Not Found And No Override Allowed"
         end
-        write_output "\nJob '#{job_name}' found"
+        write_output "\nJob '#{@job}' #{job_exists_already ? "" : "not "}found"
 
-        if(workitem['fields']['override_existing'])
-          unless job_exists_already
-            log_output("Creating Job '#{job_name}', None Found" )
-          end
-          log_output("Parsing Steps From #{workitem['fields']['steps']}")
-
-          steps = workitem['fields']['steps']
-          steps = JSON.parse steps.gsub(/\'/, '"') if steps.is_a? String
-
-          log_output("Parsing User-Defined Axes from #{workitem['fields']['user_defined_axes']}")
-
-          user_axes = workitem['fields']['user_defined_axes']
-          user_axes = JSON.parse user_axes.gsub(/\'/, '"') if user_axes.is_a? String
-
-          log_output("Parsing Label Axes from #{workitem['fields']['label_axes']}")
-
-          label_axes = workitem['fields']['label_axes']
-          label_axes = JSON.parse label_axes.gsub(/\'/, '"') if label_axes.is_a? String
+        if(@override_existing)
+          log_output("#{job_exists_already ? "Updating existing" : "Creating new"} job '#{@job}'..." )
+          log_output(" - Parsing Steps From #{@steps}")
+          log_output(" - Parsing User-Defined Axes from #{@user_axes}")
+          log_output(" - Parsing Label Axes from #{@label_axes}")
 
           if job_exists_already
-            update_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']})
+            update_job({:steps => @steps, :user_defined_axes => @user_axes, :label_axes => @label_axes, :scm => @scm_url})
           else
-            create_job(job_name, {:steps => steps, :user_defined_axes => user_axes, :label_axes => label_axes, :scm => workitem['fields']['scm_url']})
+            create_job({:steps => @steps, :user_defined_axes => @user_axes, :label_axes => @label_axes, :scm => @scm_url})
           end
         end
 
-        parameters = workitem['fields']['parameters']
+        build_number = build_job
 
-        build_number = (@client.job.get_current_build_number(job_name) || 0) + 1
-
-        success = false
-
-        success = build_job(job_name, parameters)
-
-        log_output("Jenkins Job #{success ? "Started Successfully" : "Failed To Start"}")
-
-        if !success
-          raise PluginError, "Jenkins job failed to start"
-        end
-
-        log_output("Build Number Is #{build_number}")
+        write_output("\nJenkins Job '#{@job}' initiated with build ##{build_number}")
         save_output_value('build_number', build_number)
 
         # Last pos is used for incremental console output
@@ -89,44 +64,38 @@ module MaestroDev
         write_output("\n", :buffer => true)
 
         begin
-          details = @client.job.get_build_details(job_name, build_number)
-          latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
-          write_output(latest_output['output'])
-          last_pos = latest_output['size']
-          sleep(query_interval)
-        rescue JenkinsApi::Exceptions::NotFoundException, Timeout::Error => e
-          Maestro.log.debug "Jenkins job #{job_name} has not started build #{build_number} yet. Sleeping"
-          failures += 1
-          if failures > 5
-            raise PluginError, "Timed out trying to get build details for #{job_name} build number #{build_number} [#{e.class}]"
-          end
-          sleep(query_interval)
-        end while details.nil? or details.is_a?(FalseClass) or (details.is_a?(Hash) and details["building"])
+          begin
+            latest_output = @client.job.get_console_output(@job, build_number, last_pos)
+            write_output(latest_output['output'])
+            last_pos = latest_output['size']
+            # If this is true the build has not finished
+            more_data = as_boolean(latest_output['more'])
+            sleep(query_interval)
+          end while more_data
 
-        latest_output = @client.job.get_console_output(job_name, build_number, last_pos)
-        write_output(latest_output['output'])
-
-        process_job_complete(job_name, build_number)
+          process_job_complete(build_number)
+        rescue Timeout::Error
+          raise PluginError, "Timed out trying to get build log for #{@job} build number #{build_number}"
+        rescue JenkinsApi::Exceptions::ApiException => e
+          raise PluginError, "Error while communicating with Jenkins for #{@job} build number #{build_number}. #{e}"
+        end
       end
 
       # Gets the build data used to update the Maestro dashboard. This is meant to be scheduled at regular intervals to
       # Get up to date data without requiring a build composition/task to be run.
       def get_build_data
+        validate_fetch_parameters
 
-        Maestro.log.info 'Retrieving build data from Jenkins'
-        validate_inputs
-
-        Maestro.log.info "Inputs: host = #{workitem['fields']['host']}, port = #{workitem['fields']['port']}, job = #{workitem['fields']['job']}"
-        log_output("Retrieving latest build data for job #{job_name}")
+        log_output("Retrieving latest build data for job #{@job}")
 
         setup
 
-        job_exists = @client.job.exists?(job_name)
+        job_exists = @client.job.exists?(@job)
 
-        raise PluginError, "Job '#{job_name}' Not Found" unless job_exists
-        job_data = @client.job.list_details(job_name)
+        raise PluginError, "Job '#{@job}' Not Found" unless job_exists
+        job_data = @client.job.list_details(@job)
 
-        raise PluginError, "Data for Job '#{job_name}' Not Found" unless job_data
+        raise PluginError, "Data for Job '#{@job}' Not Found" unless job_data
 
         last_completed_build = job_data['lastCompletedBuild']
         last_output_build_number = read_output_value('build_number')
@@ -135,7 +104,7 @@ module MaestroDev
         save_output_value('build_number', build_number) if build_number
 
         if build_number.nil? or build_number == last_output_build_number
-          Maestro.log.info("No completed Jenkins build found for job #{job_name}")
+          Maestro.log.info("No completed Jenkins build found for job #{@job}")
           write_output("\nNo new completed build found")
           not_needed
           return
@@ -143,7 +112,7 @@ module MaestroDev
         
         log_output("Last completed build number: #{build_number}")
 
-        process_job_complete(job_name, build_number)
+        process_job_complete(build_number)
       end
 
       ###########
@@ -151,11 +120,11 @@ module MaestroDev
       ###########
       private
 
-      def process_job_complete(job_name, build_number)
+      def process_job_complete(build_number)
         begin
-          details = @client.job.get_build_details(job_name, build_number)
+          details = @client.job.get_build_details(@job, build_number)
         rescue JenkinsApi::Exceptions::NotFoundException => e
-          log_output("Jenkins job #{job_name} build #{build_number} details not found.", :info)
+          log_output("Jenkins job #{@job} build #{build_number} details not found.", :info)
           return false
         end
 
@@ -228,21 +197,21 @@ module MaestroDev
         success
       end
 
-      def update_job(job_name, options)
-        send_job(job_name, options, true)
+      def update_job(options)
+        send_job(options, true)
       end
 
-      def create_job(job_name, options)
-        send_job(job_name, options, false)
+      def create_job(options)
+        send_job(options, false)
       end
 
-      def send_job(job_name, options, update)
+      def send_job(options, update)
         rubies = []
         steps = []
         user_axes = []
         label_axes = []
 
-        log_output "Loading #{job_name} with #{options.to_json}"
+        log_output "Loading #{@job} with #{options.to_json}"
 
         options[:steps].andand.each do |step|
           steps << [:build_shell_step, step]
@@ -279,85 +248,154 @@ module MaestroDev
 
         xml_config = job_config.to_xml
 
+        write_output("\nconfig.xml = \n#{xml_config}") if @debug_mode
+
         begin
           if update
-            resp_code = @client.job.post_config(job_name, xml_config)
+            resp_code = @client.job.post_config(@job, xml_config)
           else
-            resp_code = @client.job.create(job_name, xml_config)
+            resp_code = @client.job.create(@job, xml_config)
           end
         rescue JenkinsApi::Exceptions::ApiException => e
-          raise PluginError, "Failed to #{update ? 'update' : 'create'} job #{job_name}: #{e.class.name}, #{e}"
+          raise PluginError, "Failed to #{update ? 'update' : 'create'} job #{@job}: #{e.class.name}, #{e}"
         end
       end
 
-      def job_name
-        workitem['fields']['job']
-      end
-
-      def build_job(job_name, parameters)
-        unless (parameters.nil? or parameters.empty?)
-          # Convert list of k=v into hash
-          params = Hash[parameters.map {|v| v.split(%r{\s*=\s*})}]
-          @client.job.build(job_name, params)
+      def build_job
+        # We need to call method direct because api client gobbles up response
+        if (@parameters.nil? or @parameters.empty?)
+          response = @client.api_post_request("/job/#{@job}/build",
+            {},
+            true)
         else
-          @client.job.build(job_name)
+          response = @client.api_post_request("/job/#{@job}/buildWithParameters",
+            @parameters,
+            true)
         end
 
         # If we get this far the API hasn't detected an error response (it would raise Exception)
         # So no need to check response code
-        true
-      rescue JenkinsApi::Exceptions::ApiException => e
-        log_output("\nGot error invoking build of '#{job_name}'. Error: #{e.class.name}, #{e}\n", :info)
-        false
-      end
+        # If return_build_number is enabled, obtain the queue ID from the location
+        # header and wait till the build is moved to one of the executors and a
+        # build number is assigned
+        if response["location"]
+          task_id_match = response["location"].match(/\/item\/(\d*)\//)
+          task_id = task_id_match.nil? ? nil : task_id_match[1]
+          unless task_id.nil?
+            write_output("\nJob '#{@job}' queued, will wait up to #{@build_start_timeout} seconds for build to start...")
 
-      def validate_inputs
-        if workitem['fields']['port'].nil? or workitem['fields']['port'] == 0
-          workitem['fields']['port'] = workitem['fields']['use_ssl'] ? 443 : 80
-        end
+            # Wait for the build to start
+            begin
+              Timeout::timeout(@build_start_timeout) do
+                started = false
+                attempts = 0
 
-        missing = ['host', 'job'].select{|f| empty?(f)}
-        raise ConfigError, "Missing Fields: #{missing.join(",")}" unless missing.empty?
-      end
+                while !started
+                  # Don't really care about the response... if we get thru here, then it must have worked.
+                  # Jenkins will return 404's until the job starts
+                  queue_item = @client.queue.get_item_by_id(task_id)
 
-      def booleanify(value)
-        res = false
+                  if queue_item['executable'].nil?
+                    # Job not started yet
+                    attempts += 1
 
-        if value
-          if value.is_a?(TrueClass) || value.is_a?(FalseClass)
-            res = value
-          elsif value.is_a?(Fixnum)
-            res = value != 0
-          elsif value.respond_to?(:to_s)
-            value = value.to_s.downcase
+                    # Every 5 attempts (~10 seconds)
+                    write_output("\nStill waiting...") if attempts % 5 == 0
 
-            res = (value == 't' || value == 'true')
+                    sleep JOB_START_POLL_INTERVAL
+                  else
+                    return queue_item['executable']['number']
+                  end
+                end
+              end
+            rescue Timeout::Error
+              # Well, we waited - and the job never started building
+              # Attempt to kill off queued job (if flag set)
+              if @cancel_on_build_start_timeout
+                write_output("\nJob did not start in a timely manner, attempting to cancel pending build...")
+
+                begin
+                  @client.api_post_request("/queue/cancelItem?id=#{task_id}")
+                  write_output(" done")
+                rescue JenkinsApi::Exceptions::ApiException => e
+                  raise PluginError, "Error while attempting to cancel pending job build for #{@job}. #{e}"
+                end
+              end
+
+              # Now we need to raise an exception so that the build can be officially failed
+              raise PluginError, "Jenkins build failed to start in a timely manner"
+            rescue JenkinsApi::Exceptions::ApiException => e
+              # Jenkins Api threw an error at us
+              raise PluginError, "Problem while waiting for '#{@job}' build ##{build_number} to start.  #{e.class} #{e}"
+            end
+          else
+            raise PluginError, "Jenkins did not return a queue_id for build of '#{@job}'"
           end
+        else
+          raise PluginError, "Jenkins did not return a location header for build of '#{@job}'"
         end
+      rescue JenkinsApi::Exceptions::ApiException => e
+        raise PluginError, ("Got error invoking build of '#{@job}'. #{e}")
+      end
 
-        res
+      def validate_common_parameters
+        errors = []
+
+        @debug_mode = get_boolean_field('debug_mode')
+        @use_ssl = get_boolean_field('use_ssl')
+        @host = get_field('host', '')
+        @port = get_int_field('port', @use_ssl ? 443 :80)
+        @job = get_field('job', '')
+        @fail_on_unstable = get_boolean_field('fail_on_unstable')
+        @username = get_field('username')
+        @password = get_field('password')
+        @web_path = get_field('web_path', '/')
+        @web_path = '/' + @web_path.gsub(/^\//, '').gsub(/\/$/, '')
+
+        errors << 'missing field host' if @host.empty?
+        errors << 'missing field job' if @job.empty?
+
+        return errors
+      end
+
+      def validate_build_parameters
+        errors = validate_common_parameters
+
+        # Additional params for build
+        @build_start_timeout = get_int_field('build_start_timeout', 60)
+        @cancel_on_build_start_timeout = get_boolean_field('cancel_on_build_start_timeout')
+        @override_existing = get_boolean_field('override_existing')
+        @steps = get_field('steps')
+        @steps = JSON.parse steps.gsub(/\'/, '"') if @steps.is_a? String
+        @user_axes = get_field('user_defined_axes')
+        @user_axes = JSON.parse user_axes.gsub(/\'/, '"') if @user_axes.is_a? String
+        @label_axes = get_field('label_axes')
+        @label_axes = JSON.parse label_axes.gsub(/\'/, '"') if @label_axes.is_a? String
+        @scm_url = get_field('scm_url')
+        @parameters = get_field('parameters')
+
+        # Convert list of k=v into hash
+        @parameters = Hash[@parameters.map {|v| v.split(%r{\s*=\s*})}] if @parameters
+
+        raise ConfigError, "Configuration Error: #{errors.join(", ")}" unless errors.empty?
+      end
+
+      def validate_fetch_parameters
+        errors = validate_common_parameters
+
+        raise ConfigError, "Configuration Error: #{errors.join(", ")}" unless errors.empty?
       end
 
       # Returns the jenkins API endpoint uri or false if host is not set
       # (shouldn't happen as it is validated before)
       def setup
-        host = get_field('host')
-        port = get_field('port', 80)
-        username = get_field('username')
-        password = get_field('password')
-        @fail_on_unstable = booleanify(get_field('fail_on_unstable', false))
-
-        use_ssl = get_field('use_ssl', false)
-        @web_path = get_field('web_path', '/')
-        @web_path = '/' + @web_path.gsub(/^\//, '').gsub(/\/$/, '')
-
-        options = { :server_ip => host,
-                    :server_port => port,
+        options = { :server_ip => @host,
+                    :server_port => @port,
                     :jenkins_path => @web_path,
-                    :follow_redirects => true,
-                    :ssl => use_ssl}
+                    :ssl => @use_ssl}
 
-        uri = "http#{'s' if use_ssl}://#{host}:#{port}#{@web_path}"
+        # This URI purely for logging
+        uri = "http#{'s' if @use_ssl}://#{@host}:#{@port}#{@web_path}"
 
         if ENV['http_proxy']
           proxy_uri = URI.parse(ENV['http_proxy'])
@@ -369,17 +407,17 @@ module MaestroDev
           log_output("Connecting to Jenkins server at #{uri} (no proxy)", :info)
         end
 
-        if username
-          options[:username] = username
-          options[:password] = password
-          log_output("Using username '#{username}' and password")
+        if @username
+          options[:username] = @username
+          options[:password] = @password
+          log_output("Using username '#{@username}' and password")
         end
 
         @client = JenkinsApi::Client.new(options)
       end
 
       def save_test_results(build_number, details, url_meta)
-        test_results = @client.job.get_test_results(job_name, build_number)
+        test_results = @client.job.get_test_results(@job, build_number)
 
         if test_results
           # Add test url to links
