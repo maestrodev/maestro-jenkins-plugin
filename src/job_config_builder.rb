@@ -75,21 +75,12 @@ module Jenkins
       if scm && scm =~ /git/
         scm_url = public_scm ? public_only_git_scm(scm) : scm
         b.scm :class => "hudson.plugins.git.GitSCM" do
-          b.configVersion 1
-          b.remoteRepositories do
-            b.tag! "org.spearce.jgit.transport.RemoteConfig" do
-              b.string "origin"
-              b.int 5
-              b.string "fetch"
-              b.string "+refs/heads/*:refs/remotes/origin/*"
-              b.string "receivepack"
-              b.string "git-upload-pack"
-              b.string "uploadpack"
-              b.string "git-upload-pack"
-              b.string "url"
-              b.string scm_url
-              b.string "tagopt"
-              b.string
+          b.configVersion 2
+          b.userRemoteConfigs do
+            b.tag! "hudson.plugins.git.UserRemoteConfig" do
+              b.name ""
+              b.refspec "+refs/heads/*:refs/remotes/origin/*"
+              b.url scm_url
             end
           end
 
@@ -104,18 +95,27 @@ module Jenkins
           end
 
           b.localBranch
-          b.mergeOptions
+          b.disableSubmodules false
           b.recursiveSubmodules false
           b.doGenerateSubmoduleConfigurations false
           b.authorOrCommitter false
           b.clean false
           b.wipeOutWorkspace false
+          b.pruneBranches false
+          b.remotePoll false
+          b.ignoreNotifyCommit false
           b.buildChooser :class => "hudson.plugins.git.util.DefaultBuildChooser"
           b.gitTool "Default"
           b.submoduleCfg :class => "list"
           b.relativeTargetDir
+          b.reference
           b.excludedRegions
           b.excludedUsers
+          b.gitConfigName
+          b.gitConfigEmail
+          b.skipTag false
+          b.includedRegions
+          b.scmName
         end
       end
     end
