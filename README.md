@@ -1,4 +1,6 @@
 # maestro-jenkins-plugin
+[![Code Climate](https://codeclimate.com/github/maestrodev/maestro-jenkins-plugin.png)](https://codeclimate.com/github/maestrodev/maestro-jenkins-plugin)
+
 Maestro plugin providing a "task" to control jenkins. This
 plugin is a Ruby-based deployable that gets delivered as a Zip file.
 
