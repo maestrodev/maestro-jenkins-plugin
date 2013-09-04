@@ -128,6 +128,7 @@
                         "type": "String"
                     }
                 },
+                "icon": "jenkins.png",
                 "tool_name": "Build"
             }
         },
@@ -197,6 +198,7 @@
                         "type": "String"
                     }
                 },
+                "icon": "jenkins.png",
                 "tool_name": "Build"
             }
         }
