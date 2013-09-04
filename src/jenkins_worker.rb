@@ -474,7 +474,7 @@ module MaestroDev
         @client = JenkinsApi::Client.new(options)
         # Bug in client that doesn't support non root-level paths for some operations
         # Pull req #
-        @client.api_get_request('/', nil, '', true)['X-Jenkins']
+        version = @client.api_get_request('/', nil, '', true)['X-Jenkins']
         @jenkins_version = version.to_f || 0.0
         write_output("\nJenkins version #{@jenkins_version} (raw: #{version})")
 
