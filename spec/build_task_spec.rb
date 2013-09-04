@@ -158,7 +158,7 @@ describe MaestroDev::Plugin::JenkinsWorker do
       # Request for jenkins root, used to get list of projects
       stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
-      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo').to_return(:status => 500, :body => 'error')
+      stub_request(:post, 'http://localhost:8080/createItem?name=Buildaroo').to_return(:status => 500, :body => 'Exception: gone broke<br>')
 
       subject.perform(:build, workitem)
 
