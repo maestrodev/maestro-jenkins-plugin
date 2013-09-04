@@ -21,6 +21,9 @@ module MaestroDev
       # How long between polls of the queued job?
       JOB_START_POLL_INTERVAL = 2
 
+      # Version that jenkins started to include queued build info in build response
+      JENKINS_QUEUE_ID_SUPPORT_VERSION = 1.519
+
       def initialize
         @query_interval = 3
       end
@@ -261,7 +264,18 @@ module MaestroDev
         end
       end
 
+      def next_build_id
+        # API says it will return nil... but looking at the code I suspect it may return a -1
+        current_build_id = @client.job.get_current_build_number(@job)
+        current_build_id > 0 ? current_build_id + 1 : 1
+      end
+
       def build_job
+        # Best-guess build-id
+        # This is only used if we go the old-way below... but we can use this number to detect if multiple
+        # builds were queued
+        expected_build_id = next_build_id
+
         # We need to call method direct because api client gobbles up response
         if (@parameters.nil? or @parameters.empty?)
           response = @client.api_post_request("/job/#{@job}/build",
@@ -273,6 +287,16 @@ module MaestroDev
             true)
         end
 
+        if @queue_id_support
+          return get_build_id_from_queue(response)
+        else
+          return get_build_id_the_old_way(expected_build_id)
+        end
+      rescue JenkinsApi::Exceptions::ApiException => e
+        raise PluginError, ("Got error invoking build of '#{@job}'. #{e}")
+      end
+
+      def get_build_id_from_queue(response)
         # If we get this far the API hasn't detected an error response (it would raise Exception)
         # So no need to check response code
         # If return_build_number is enabled, obtain the queue ID from the location
@@ -329,13 +353,47 @@ module MaestroDev
               raise PluginError, "Problem while waiting for '#{@job}' build ##{build_number} to start.  #{e.class} #{e}"
             end
           else
-            raise PluginError, "Jenkins did not return a queue_id for build of '#{@job}'"
+            raise PluginError, "Jenkins did not return a queue_id for build of '#{@job}' (location: #{response['location']})"
           end
         else
           raise PluginError, "Jenkins did not return a location header for build of '#{@job}'"
         end
-      rescue JenkinsApi::Exceptions::ApiException => e
-        raise PluginError, ("Got error invoking build of '#{@job}'. #{e}")
+      end
+
+      def get_build_id_the_old_way(expected_build_id)
+        # Try to wait until the build starts so we can mimic queue
+        # Wait for the build to start
+        write_output("\nBuild requested, will wait up to #{@build_start_timeout} seconds for build to start...")
+
+        begin
+          Timeout::timeout(@build_start_timeout) do
+            attempts = 0
+
+            while true
+              attempts += 1
+
+              # Don't really care about the response... if we get thru here, then it must have worked.
+              # Jenkins will return 404's until the job starts
+              begin
+                @client.job.get_build_details(@job, expected_build_id)
+
+                return expected_build_id
+              rescue JenkinsApi::Exceptions::NotFound => e
+                # Every 5 attempts (~10 seconds)
+                write_output("\nStill waiting...") if attempts % 5 == 0
+
+                sleep JOB_START_POLL_INTERVAL
+              end
+            end
+          end
+        rescue Timeout::Error
+          # Well, we waited - and the job never started building
+          # Now we need to raise an exception so that the build can be officially failed
+          raise PluginError, "Jenkins build failed to start in a timely manner"
+        rescue JenkinsApi::Exceptions::ApiException => e
+          # Jenkins Api threw an error at us
+          raise PluginError, "Problem while waiting for '#{@job}' build ##{build_number} to start.  #{e.class} #{e}"
+        end
       end
 
       def validate_common_parameters
@@ -414,6 +472,13 @@ module MaestroDev
         end
 
         @client = JenkinsApi::Client.new(options)
+        # Bug in client that doesn't support non root-level paths for some operations
+        # Pull req #
+        @client.api_get_request('/', nil, '', true)['X-Jenkins']
+        @jenkins_version = version.to_f || 0.0
+        write_output("\nJenkins version #{@jenkins_version} (raw: #{version})")
+
+        @queue_id_support = @jenkins_version >= JENKINS_QUEUE_ID_SUPPORT_VERSION
       end
 
       def save_test_results(build_number, details, url_meta)

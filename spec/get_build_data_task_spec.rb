@@ -13,6 +13,8 @@ describe MaestroDev::Plugin::JenkinsWorker do
     end
 
     it "should retrieve the build data" do
+      # Request for jenkins root, used to get version
+      stub_request(:get,  'http://localhost:8080/').to_return(:headers => {'X-Jenkins' => '9.001'})
       # Request for jenkins root, used to get list of projects
       stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
       # Request for details about Buildroo project
@@ -46,6 +48,8 @@ describe MaestroDev::Plugin::JenkinsWorker do
     it "should send a not_needed message if the last build number has not changed since last run" do
       @workitem['fields']['__previous_context_outputs__'] = {'build_number' => 22}
 
+      # Request for jenkins root, used to get version
+      stub_request(:get,  'http://localhost:8080/').to_return(:headers => {'X-Jenkins' => '9.001'})
       # Request for jenkins root, used to get list of projects
       stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITH_JOB)
       # Request for details about Buildroo project

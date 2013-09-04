@@ -15,6 +15,8 @@ describe MaestroDev::Plugin::JenkinsWorker do
   let(:workitem) { {'fields' => fields} }
 
   def standard_build_start_webmock(params = nil, build_result = {:body => '', :headers => {'location' => "/item/1/"}})
+    # Request for jenkins root, used to get version
+    stub_request(:get,  'http://localhost:8080/').to_return(:headers => {'X-Jenkins' => '9.001'})
     # Request for jenkins root, used to get list of projects
     stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
     # Request to create Buildaroo job
@@ -63,7 +65,6 @@ describe MaestroDev::Plugin::JenkinsWorker do
       standard_build_run_webmock
 
       subject.perform(:build, workitem)
-
       subject.error.should be_nil
       subject.output.should be_nil
     end
@@ -152,6 +153,8 @@ describe MaestroDev::Plugin::JenkinsWorker do
     end
 
     it "should supply error when job fails to be created" do
+      # Request for jenkins root, used to get version
+      stub_request(:get,  'http://localhost:8080/').to_return(:headers => {'X-Jenkins' => '9.001'})
       # Request for jenkins root, used to get list of projects
       stub_request(:get,  'http://localhost:8080/api/json').to_return(:body => JENKINS_ROOT_WITHOUT_JOB)
       # Request to create Buildaroo job
