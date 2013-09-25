@@ -452,12 +452,16 @@ module MaestroDev
                     :jenkins_path => @web_path,
                     :ssl => @use_ssl}
 
-        # This URI purely for logging
-        uri = "http#{'s' if @use_ssl}://#{@host}:#{@port}#{@web_path}"
+        uri = URI.parse("http#{'s' if @use_ssl}://#{@host}:#{@port}#{@web_path}")
 
-        if ENV['http_proxy']
+        proxy_uri = nil
+        if uri.respond_to?(:find_proxy)
+          proxy_uri = uri.find_proxy
+        elsif ENV['http_proxy']
           proxy_uri = URI.parse(ENV['http_proxy'])
+        end
 
+        if proxy_uri
           log_output("Connecting to Jenkins server at #{uri} (proxy #{proxy_uri.host}:#{proxy_uri.port})", :info)
           options[:proxy_ip] = proxy_uri.host
           options[:proxy_port] = proxy_uri.port
