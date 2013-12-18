@@ -10,19 +10,12 @@ module MaestroDev
     class JenkinsWorker < Maestro::MaestroWorker
       attr_reader :client
 
-      # every how many seconds to ping jenkins for console updates
       attr_accessor :query_interval
 
       SCM_GIT = 'git'
       SCM_SVN = 'svn' # Change this if Jenkins calls it something other than svn in changeSet 'kind' value
       JENKINS_SUCCESS = 'SUCCESS'
       JENKINS_UNSTABLE = 'UNSTABLE'
-
-      # How long between polls of the queued job?
-      JOB_START_POLL_INTERVAL = 2
-
-      # Version that jenkins started to include queued build info in build response
-      JENKINS_QUEUE_ID_SUPPORT_VERSION = 1.519
 
       def initialize
         @query_interval = 3
@@ -41,10 +34,10 @@ module MaestroDev
         write_output "\nJob '#{@job}' #{job_exists_already ? "" : "not "}found"
 
         if(@override_existing)
-          log_output("#{job_exists_already ? "Updating existing" : "Creating new"} job '#{@job}'..." )
-          log_output(" - Parsing Steps From #{@steps}")
-          log_output(" - Parsing User-Defined Axes from #{@user_axes}")
-          log_output(" - Parsing Label Axes from #{@label_axes}")
+          write_output("\n#{job_exists_already ? "Updating existing" : "Creating new"} job '#{@job}'..." )
+          write_output("\n - Parsing Steps From #{@steps}")
+          write_output("\n - Parsing User-Defined Axes from #{@user_axes}")
+          write_output("\n - Parsing Label Axes from #{@label_axes}")
 
           if job_exists_already
             update_job({:steps => @steps, :user_defined_axes => @user_axes, :label_axes => @label_axes, :scm => @scm_url})
@@ -89,7 +82,7 @@ module MaestroDev
       def get_build_data
         validate_fetch_parameters
 
-        log_output("Retrieving latest build data for job #{@job}")
+        write_output("\nRetrieving latest build data for job #{@job}")
 
         setup
 
@@ -107,13 +100,12 @@ module MaestroDev
         save_output_value('build_number', build_number) if build_number
 
         if build_number.nil? or build_number == last_output_build_number
-          Maestro.log.info("No completed Jenkins build found for job #{@job}")
-          write_output("\nNo new completed build found")
+          write_output("\nNo new completed build found for job #{@job}")
           not_needed
           return
         end
         
-        log_output("Last completed build number: #{build_number}")
+        write_output("\nLast completed build number: #{build_number}")
 
         process_job_complete(build_number)
       end
@@ -127,7 +119,7 @@ module MaestroDev
         begin
           details = @client.job.get_build_details(@job, build_number)
         rescue JenkinsApi::Exceptions::NotFoundException => e
-          log_output("Jenkins job #{@job} build #{build_number} details not found.", :info)
+          write_output("\nJenkins job #{@job} build #{build_number} details not found.", :info)
           return false
         end
 
@@ -194,7 +186,7 @@ module MaestroDev
           end
         end
 
-        log_output("Jenkins Job Completed #{success ? "S" : "Uns"}uccessfully")
+        write_output("\nJenkins Job Completed #{success ? "S" : "Uns"}uccessfully")
 
         raise PluginError, "Jenkins job failed" if !success
         success
@@ -214,11 +206,10 @@ module MaestroDev
         user_axes = []
         label_axes = []
 
-        log_output "Loading #{@job} with #{options.to_json}"
+        write_output "\nLoading #{@job} with #{options.to_json}"
 
         options[:steps].andand.each do |step|
           steps << [:build_shell_step, step]
-          Maestro.log.debug "setting step #{step}"
         end
 
         options[:user_defined_axes].andand.each do |axis_string|
@@ -233,12 +224,10 @@ module MaestroDev
           end
           axis = { :name => name, :values => values }
           user_axes << axis
-          Maestro.log.debug "setting user-defined axis #{axis.inspect}"
         end
 
         options[:label_axes].andand.each do |axis|
           label_axes << axis
-          Maestro.log.debug "setting label axis #{axis}"
         end
 
         job_config = Jenkins::JobConfigBuilder.new('none') do |c|
@@ -264,135 +253,33 @@ module MaestroDev
         end
       end
 
-      def next_build_id
-        # API says it will return nil... but looking at the code I suspect it may return a -1
-        current_build_id = @client.job.get_current_build_number(@job)
-        current_build_id > 0 ? current_build_id + 1 : 1
-      end
-
       def build_job
-        # Best-guess build-id
-        # This is only used if we go the old-way below... but we can use this number to detect if multiple
-        # builds were queued
-        expected_build_id = next_build_id
+        build_opts = {'build_start_timeout' => @build_start_timeout,
+                      'cancel_on_build_start_timeout' => @cancel_on_build_start_timeout,
+                      'progress_proc' => self.method(:on_build_start_progress),
+                      'completion_proc' => self.method(:on_build_start_complete)
+        }
 
-        # We need to call method direct because api client gobbles up response
-        if (@parameters.nil? or @parameters.empty?)
-          response = @client.api_post_request("/job/#{@job}/build",
-            {},
-            true)
-        else
-          response = @client.api_post_request("/job/#{@job}/buildWithParameters",
-            @parameters,
-            true)
-        end
-
-        if @queue_id_support
-          return get_build_id_from_queue(response)
-        else
-          return get_build_id_the_old_way(expected_build_id)
-        end
+        @client.job.build(@job, @parameters || {}, build_opts)
       rescue JenkinsApi::Exceptions::ApiException => e
         raise PluginError, ("Got error invoking build of '#{@job}'. #{e}")
+      rescue Timeout::Error
+        raise PluginError, 'Jenkins build failed to start in a timely manner'
       end
 
-      def get_build_id_from_queue(response)
-        # If we get this far the API hasn't detected an error response (it would raise Exception)
-        # So no need to check response code
-        # If return_build_number is enabled, obtain the queue ID from the location
-        # header and wait till the build is moved to one of the executors and a
-        # build number is assigned
-        if response["location"]
-          task_id_match = response["location"].match(/\/item\/(\d*)\//)
-          task_id = task_id_match.nil? ? nil : task_id_match[1]
-          unless task_id.nil?
-            write_output("\nJob '#{@job}' queued, will wait up to #{@build_start_timeout} seconds for build to start...")
-
-            # Wait for the build to start
-            begin
-              Timeout::timeout(@build_start_timeout) do
-                started = false
-                attempts = 0
-
-                while !started
-                  # Don't really care about the response... if we get thru here, then it must have worked.
-                  # Jenkins will return 404's until the job starts
-                  queue_item = @client.queue.get_item_by_id(task_id)
-
-                  if queue_item['executable'].nil?
-                    # Job not started yet
-                    attempts += 1
-
-                    # Every 5 attempts (~10 seconds)
-                    write_output("\nStill waiting...") if attempts % 5 == 0
-
-                    sleep JOB_START_POLL_INTERVAL
-                  else
-                    return queue_item['executable']['number']
-                  end
-                end
-              end
-            rescue Timeout::Error
-              # Well, we waited - and the job never started building
-              # Attempt to kill off queued job (if flag set)
-              if @cancel_on_build_start_timeout
-                write_output("\nJob did not start in a timely manner, attempting to cancel pending build...")
-
-                begin
-                  @client.api_post_request("/queue/cancelItem?id=#{task_id}")
-                  write_output(" done")
-                rescue JenkinsApi::Exceptions::ApiException => e
-                  raise PluginError, "Error while attempting to cancel pending job build for #{@job}. #{e}"
-                end
-              end
-
-              # Now we need to raise an exception so that the build can be officially failed
-              raise PluginError, "Jenkins build failed to start in a timely manner"
-            rescue JenkinsApi::Exceptions::ApiException => e
-              # Jenkins Api threw an error at us
-              raise PluginError, "Problem while waiting for '#{@job}' build ##{build_number} to start.  #{e.class} #{e}"
-            end
-          else
-            raise PluginError, "Jenkins did not return a queue_id for build of '#{@job}' (location: #{response['location']})"
-          end
+      def on_build_start_progress(max_wait, curr_wait, poll_count)
+        if poll_count == 0
+          write_output("\nJob '#{@job}' queued, will wait up to #{max_wait} seconds for build to start...")
         else
-          raise PluginError, "Jenkins did not return a location header for build of '#{@job}'"
+          write_output("\nStill waiting...") if poll_count % 5 == 0
         end
       end
 
-      def get_build_id_the_old_way(expected_build_id)
-        # Try to wait until the build starts so we can mimic queue
-        # Wait for the build to start
-        write_output("\nBuild requested, will wait up to #{@build_start_timeout} seconds for build to start...")
-
-        begin
-          Timeout::timeout(@build_start_timeout) do
-            attempts = 0
-
-            while true
-              attempts += 1
-
-              # Don't really care about the response... if we get thru here, then it must have worked.
-              # Jenkins will return 404's until the job starts
-              begin
-                @client.job.get_build_details(@job, expected_build_id)
-
-                return expected_build_id
-              rescue JenkinsApi::Exceptions::NotFound => e
-                # Every 5 attempts (~10 seconds)
-                write_output("\nStill waiting...") if attempts % 5 == 0
-
-                sleep JOB_START_POLL_INTERVAL
-              end
-            end
-          end
-        rescue Timeout::Error
-          # Well, we waited - and the job never started building
-          # Now we need to raise an exception so that the build can be officially failed
-          raise PluginError, "Jenkins build failed to start in a timely manner"
-        rescue JenkinsApi::Exceptions::ApiException => e
-          # Jenkins Api threw an error at us
-          raise PluginError, "Problem while waiting for '#{@job}' build ##{build_number} to start.  #{e.class} #{e}"
+      def on_build_start_complete(build_number, cancelled)
+        if build_number
+          write_output("\nJob '#{@job}' build ##{build_number} started")
+        elsif cancelled
+          write_output("\nJob '#{@job}' build did not start in timeout period, build #{cancelled ? "" : "NOT "}cancelled")
         end
       end
 
@@ -462,27 +349,21 @@ module MaestroDev
         end
 
         if proxy_uri
-          log_output("Connecting to Jenkins server at #{uri} (proxy #{proxy_uri.host}:#{proxy_uri.port})", :info)
+          write_output("\nConnecting to Jenkins server at #{uri} (proxy #{proxy_uri.host}:#{proxy_uri.port})", :info)
           options[:proxy_ip] = proxy_uri.host
           options[:proxy_port] = proxy_uri.port
         else
-          log_output("Connecting to Jenkins server at #{uri} (no proxy)", :info)
+          write_output("\nConnecting to Jenkins server at #{uri} (no proxy)", :info)
         end
 
         if @username
           options[:username] = @username
           options[:password] = @password
-          log_output("Using username '#{@username}' and password")
+          write_output("\nUsing username '#{@username}' and password")
         end
 
         @client = JenkinsApi::Client.new(options)
-        # Bug in client that doesn't support non root-level paths for some operations
-        # Pull req #
-        version = @client.api_get_request('/', nil, '', true)['X-Jenkins']
-        @jenkins_version = version.to_f || 0.0
-        write_output("\nJenkins version #{@jenkins_version} (raw: #{version})")
-
-        @queue_id_support = @jenkins_version >= JENKINS_QUEUE_ID_SUPPORT_VERSION
+        write_output("\nJenkins version #{@client.get_jenkins_version}")
       end
 
       def save_test_results(build_number, details, url_meta)
@@ -504,21 +385,16 @@ module MaestroDev
           if test_count.nil?
             test_count = fail_count + skip_count + pass_count
           end
-          log_output "Test results: test count=#{test_count}, failures=#{fail_count}, skipped=#{skip_count}, passed=#{pass_count}, duration=#{test_results['duration']}"
+          write_output "\nTest results: test count=#{test_count}, failures=#{fail_count}, skipped=#{skip_count}, passed=#{pass_count}, duration=#{test_results['duration']}"
           test_meta = [{:tests => test_count, :failures => fail_count, :skipped => skip_count, :passed => pass_count, :duration => test_results['duration']}]
           save_output_value('tests', test_meta)
         else
-          log_output "No test results available"
+          write_output "\nNo test results available"
         end
       end
 
       def empty?(field)
         get_field(field).nil? or get_field(field).empty?
-      end
-
-      def log_output(msg, level=:debug)
-        Maestro.log.send(level, msg)
-        write_output "\n#{msg}"
       end
     end
   end
