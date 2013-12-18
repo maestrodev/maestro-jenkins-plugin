@@ -1,206 +1,261 @@
 {
-  "image": "jenkins.png",
-    "source_types": [
+  "schema_version": 2,
+  "name":           "Jenkins",
+  "description":    "Create and run Jenkins jobs",
+  "license":        "Apache 2.0",
+  "author":         "MaestroDev",
+  "version":        "updated at build time",
+  "type":           "ruby",
+  "image":          "jenkins.png",
+  "tool_name":      "Build",
+  "tags":           ["jenkins", "hudson"],
+  "source_types": [
     {
-        "name": "Jenkins",
-        "options": {
-            "host": "String",
-            "port": "Integer",
-            "username": "String",
-            "password": "Password",
-            "web_path": "String",
-            "use_ssl": "Boolean"
-        }
-    }
-    ],
-    "tasks": [
-        {
-            "name": "jenkins plugin",
-            "description": "Run A Set Of Work Steps In Jenkins",
-            "license": "Apache 2.0",
-            "author": "Kelly Plummer",
-            "version": "updated at build time",
-            "class": "MaestroDev::Plugin::JenkinsWorker",
-            "type": "ruby",
-            "dependencies": [ ],
-            "task": {
-                "command": "/jenkinsplugin/build",
-                "inputs": {
-                    "host": {
-                        "required": true,
-                        "type": "String",
-                        "value": "localhost",
-                        "description": "Hostname Of The Jenkins Server"
-                    },
-                    "port": {
-                        "required": false,
-                        "type": "Integer",
-                        "value": 8080,
-                        "description": "Port Jenkins Is Running On"
-                    },
-                    "job": {
-                        "required": true,
-                        "type": "String",
-                        "value": "",
-                        "description": "Name Of The Jenkins Job"
-                    },
-                    "username": {
-                        "required": false,
-                        "type": "String",
-                        "value": "",
-                        "description": "Username for jenkins server"
-                    },
-                    "password": {
-                        "required": false,
-                        "type": "Password",
-                        "value": "",
-                        "description": "Password for jenkins server"
-                    },
-                    "use_ssl": {
-                        "required": true,
-                        "type": "Boolean",
-                        "value": false,
-                        "description": "use ssl connection"
-                    },
-                    "web_path": {
-                        "required": false,
-                        "type": "String",
-                        "value": "",
-                        "description": "path of the jenkins application in the server"
-                    },
-                    "scm_url": {
-                        "required": false,
-                        "type": "Url",
-                        "value": "",
-                        "description": "Url Of The Source Code Repository"
-                    },
-                    "parameters": {
-                        "required": false,
-                        "type": "Array",
-                        "value": [],
-                        "description": "Parameters to pass to the job. Name=value formatted."
-                    },
-                    "user_defined_axes": {
-                        "required": false,
-                        "type": "Array",
-                        "value": [],
-                        "description": "User defined axes used for a configuration matrix project"
-                    },
-                    "label_axes": {
-                        "required": false,
-                        "type": "Array",
-                        "value": [],
-                        "description": "Labels for a configuration matrix project"
-                    },
-                    "steps": {
-                        "required": false,
-                        "type": "Array",
-                        "value": [],
-                        "description": "Set Of Steps To Be Executed By Jenkins"
-                    },
-                    "override_existing": {
-                        "required": true,
-                        "type": "Boolean",
-                        "value": false,
-                        "description": "Overwrite existing jobs, or create if it does not exist"
-                    },
-                    "fail_on_unstable": {
-                        "required": false,
-                        "type": "Boolean",
-                        "value": false,
-                        "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
-                    },
-                    "build_start_timeout": {
-                        "required": false,
-                        "type": "Integer",
-                        "value": 60,
-                        "description": "How long to wait for Jenkins to start building"
-                    },
-                    "cancel_on_build_start_timeout": {
-                        "required": false,
-                        "type": "Boolean",
-                        "value": true,
-                        "description": "Attempt to cancel the build if Jenkins doesn't start building within the timeout"
-                    }
-                },
-                "outputs": {
-                    "output": {
-                        "type": "String"
-                    }
-                },
-                "icon": "jenkins.png",
-                "tool_name": "Build"
-            }
+      "name": "Jenkins",
+      "options": {
+        "host": {
+          "label":       "Host",
+          "required":    true,
+          "type":        "String",
+          "value":       "localhost",
+          "description": "Hostname of the Jenkins server"
         },
-        {
-            "name": "jenkins sync",
-            "description": "Get the data from the latest build for a particular job",
-            "license": "Apache 2.0",
-            "author": "Etienne Pelletier",
-            "version": "updated at build time",
-            "class": "MaestroDev::Plugin::JenkinsWorker",
-            "type": "ruby",
-            "dependencies": [ ],
-            "task": {
-                "command": "/jenkinsplugin/get_build_data",
-                "inputs": {
-                    "host": {
-                        "required": true,
-                        "type": "String",
-                        "value": "localhost",
-                        "description": "Hostname Of The Jenkins Server"
-                    },
-                    "port": {
-                        "required": false,
-                        "type": "Integer",
-                        "value": 8080,
-                        "description": "Port Jenkins Is Running On"
-                    },
-                    "job": {
-                        "required": true,
-                        "type": "String",
-                        "value": "",
-                        "description": "Name Of The Jenkins Job"
-                    },
-                    "username": {
-                        "required": false,
-                        "type": "String",
-                        "value": "",
-                        "description": "Username for jenkins server"
-                    },
-                    "password": {
-                        "required": false,
-                        "type": "Password",
-                        "value": "",
-                        "description": "Password for jenkins server"
-                    },
-                    "use_ssl": {
-                        "required": true,
-                        "type": "Boolean",
-                        "value": false,
-                        "description": "use ssl connection"
-                    },
-                    "web_path": {
-                        "required": false,
-                        "type": "String",
-                        "value": "",
-                        "description": "path of the jenkins application in the server"
-                    },
-                    "fail_on_unstable": {
-                        "required": false,
-                        "type": "Boolean",
-                        "value": false,
-                        "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
-                    }
-                },
-                "outputs": {
-                    "output": {
-                        "type": "String"
-                    }
-                },
-                "icon": "jenkins.png",
-                "tool_name": "Build"
-            }
+        "port": {
+          "label":       "Port",
+          "required":    false,
+          "type":        "Integer",
+          "value":       8080,
+          "description": "Port Jenkins is running on"
+        },
+        "username": {
+          "label":       "Username",
+          "required":    false,
+          "type":        "String",
+          "value":       "",
+          "description": "Username for jenkins server"
+        },
+        "password": {
+          "label":       "Password",
+          "required":    false,
+          "type":        "Password",
+          "value":       "",
+          "description": "Password for jenkins server"
+        },
+        "use_ssl": {
+          "label":       "Use SSL?",
+          "required":    true,
+          "type":        "Boolean",
+          "value":       false,
+          "description": "Use https when talking to Jenkins"
+        },
+        "web_path": {
+          "label":       "Web Path",
+          "required":    false,
+          "type":        "String",
+          "value":       "",
+          "description": "Path of the Jenkins application on the server"
         }
-    ]
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "name":        "jenkins plugin",
+      "description": "Run a set of work steps in Jenkins",
+      "class":       "MaestroDev::Plugin::JenkinsWorker",
+      "task": {
+        "command": "/jenkinsplugin/build",
+        "inputs": {
+          "host": {
+            "label":       "Host",
+            "required":    true,
+            "type":        "String",
+            "value":       "localhost",
+            "description": "Hostname of the Jenkins server"
+          },
+          "port": {
+            "label":       "Port",
+            "required":    false,
+            "type":        "Integer",
+            "value":       8080,
+            "description": "Port Jenkins is running on"
+          },
+          "job": {
+            "label":       "Job",
+            "required":    true,
+            "type":        "String",
+            "value":       "",
+            "description": "Name of the Jenkins job"
+          },
+          "username": {
+            "label":       "Username",
+            "required":    false,
+            "type":        "String",
+            "value":       "",
+            "description": "Username for jenkins server"
+          },
+          "password": {
+            "label":       "Password",
+            "required":    false,
+            "type":        "Password",
+            "value":       "",
+            "description": "Password for jenkins server"
+          },
+          "use_ssl": {
+            "label":       "Use SSL?",
+            "required":    true,
+            "type":        "Boolean",
+            "value":       false,
+            "description": "Use https when talking to Jenkins"
+          },
+          "web_path": {
+            "label":       "Web Path",
+            "required":    false,
+            "type":        "String",
+            "value":       "",
+            "description": "Path of the Jenkins application on the server"
+          },
+          "scm_url": {
+            "label":       "SCM URL",
+            "required":    false,
+            "type":        "Url",
+            "value":       "",
+            "description": "Url of the source code repository"
+          },
+          "parameters": {
+            "label":       "Parameters",
+            "required":    false,
+            "type":        "Array",
+            "value":       [],
+            "description": "Parameters to pass to the job. Name=value formatted."
+          },
+          "user_defined_axes": {
+            "label":       "User Defined Axes",
+            "required":    false,
+            "type":        "Array",
+            "value":       [],
+            "description": "User defined axes used for a configuration matrix project"
+          },
+          "label_axes": {
+            "label":       "Label Axes",
+            "required":    false,
+            "type":        "Array",
+            "value":       [],
+            "description": "Labels for a configuration matrix project"
+          },
+          "steps": {
+            "label":       "Steps",
+            "required":    false,
+            "type":        "Array",
+            "value":       [],
+            "description": "Set of steps to be executed by Jenkins"
+          },
+          "override_existing": {
+            "label":       "Override Existing?",
+            "required":    true,
+            "type":        "Boolean",
+            "value":       false,
+            "description": "Overwrite existing jobs, or create if it does not exist"
+          },
+          "fail_on_unstable": {
+            "label":       "Fail on UNSTABLE",
+            "required":    false,
+            "type":        "Boolean",
+            "value":       false,
+            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
+          },
+          "build_start_timeout": {
+            "label":       "Build Start Timeout",
+            "required":    false,
+            "type":        "Integer",
+            "value":       60,
+            "description": "How long to wait for Jenkins to start building"
+          },
+          "cancel_on_build_start_timeout": {
+            "label":       "Cancel on Build Start Timeout?",
+            "required":    false,
+            "type":        "Boolean",
+            "value":       true,
+            "description": "Attempt to cancel the build if Jenkins doesn't start building within the timeout"
+          }
+        },
+        "outputs": {
+          "output": {
+            "type": "String"
+          }
+        }
+      }
+    },
+    {
+      "name": "jenkins sync",
+      "description": "Get the data from the latest build for a particular job",
+      "class": "MaestroDev::Plugin::JenkinsWorker",
+      "task": {
+        "command": "/jenkinsplugin/get_build_data",
+        "inputs": {
+          "host": {
+            "label":       "Host",
+            "required":    true,
+            "type":        "String",
+            "value":       "localhost",
+            "description": "Hostname of the Jenkins server"
+          },
+          "port": {
+            "label":       "Port",
+            "required":    false,
+            "type":        "Integer",
+            "value":       8080,
+            "description": "Port Jenkins is running on"
+          },
+          "job": {
+            "label":       "Job",
+            "required":    true,
+            "type":        "String",
+            "value":       "",
+            "description": "Name of the Jenkins job"
+          },
+          "username": {
+            "label":       "Username",
+            "required":    false,
+            "type":        "String",
+            "value":       "",
+            "description": "Username for Jenkins server"
+          },
+          "password": {
+            "label":       "Password",
+            "required":    false,
+            "type":        "Password",
+            "value":       "",
+            "description": "Password for Jenkins server"
+          },
+          "use_ssl": {
+            "label":       "Use SSL?",
+            "required":    true,
+            "type":        "Boolean",
+            "value":       false,
+            "description": "Use https when talking to Jenkins"
+          },
+          "web_path": {
+            "label":       "Web Path",
+            "required":    false,
+            "type":        "String",
+            "value":       "",
+            "description": "Path of the Jenkins application on the server"
+          },
+          "fail_on_unstable": {
+            "label":       "Fail on UNSTABLE?",
+            "required":    false,
+            "type":        "Boolean",
+            "value":       false,
+            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
+          }
+        },
+        "outputs": {
+          "output": {
+            "type": "String"
+          }
+        }
+      }
+    }
+  ]
 }
