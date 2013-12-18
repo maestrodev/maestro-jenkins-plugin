@@ -1,5 +1,24 @@
 require "builder"
 
+if String.method_defined?(:encode)
+  class String
+    ENCODING_BINARY = Encoding.find('BINARY')
+
+    # shim method for testing purposes
+    def to_xs(escape=true)
+      raise NameError.new('to_xs') unless caller[0].index(__FILE__)
+
+      result = Builder::XChar.encode(self)
+      if escape
+        return result.gsub(/[^\u0000-\u007F]/) {|c| "&##{c.ord};"}
+      else
+        # really only useful for testing purposes
+        return result.force_encoding(ENCODING_BINARY)
+      end
+    end
+  end
+end
+
 module Jenkins
   class JobConfigBuilder
     attr_accessor :job_type
@@ -417,5 +436,6 @@ module Jenkins
     def blank?(o)
       o.respond_to?(:empty?) ? o.empty? : !o
     end
+
   end
 end
