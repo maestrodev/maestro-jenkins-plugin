@@ -1,6 +1,6 @@
 require "builder"
 
-if String.method_defined?(:encode)
+if String.method_defined?(:encode) && !String.method_defined?(:to_xs)
   class String
     ENCODING_BINARY = Encoding.find('BINARY')
 

@@ -119,7 +119,7 @@ module MaestroDev
         begin
           details = @client.job.get_build_details(@job, build_number)
         rescue JenkinsApi::Exceptions::NotFoundException => e
-          write_output("\nJenkins job #{@job} build #{build_number} details not found.", :info)
+          write_output("\nJenkins job #{@job} build #{build_number} details not found.")
           return false
         end
 
@@ -349,11 +349,11 @@ module MaestroDev
         end
 
         if proxy_uri
-          write_output("\nConnecting to Jenkins server at #{uri} (proxy #{proxy_uri.host}:#{proxy_uri.port})", :info)
+          write_output("\nConnecting to Jenkins server at #{uri} (proxy #{proxy_uri.host}:#{proxy_uri.port})")
           options[:proxy_ip] = proxy_uri.host
           options[:proxy_port] = proxy_uri.port
         else
-          write_output("\nConnecting to Jenkins server at #{uri} (no proxy)", :info)
+          write_output("\nConnecting to Jenkins server at #{uri} (no proxy)")
         end
 
         if @username
