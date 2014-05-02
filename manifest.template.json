@@ -18,42 +18,54 @@
           "required":    true,
           "type":        "String",
           "value":       "localhost",
-          "description": "Hostname of the Jenkins server"
+          "description": "Hostname of the Jenkins server",
+          "position":    1,
+          "group":       "connection"
         },
         "port": {
           "label":       "Port",
           "required":    false,
           "type":        "Integer",
           "value":       8080,
-          "description": "Port Jenkins is running on"
+          "description": "Port Jenkins is running on",
+          "position":    2,
+          "group":       "connection"
         },
         "username": {
           "label":       "Username",
           "required":    false,
           "type":        "String",
           "value":       "",
-          "description": "Username for jenkins server"
+          "description": "Username for jenkins server",
+          "position":    5,
+          "group":       "connection"
         },
         "password": {
           "label":       "Password",
           "required":    false,
           "type":        "Password",
           "value":       "",
-          "description": "Password for jenkins server"
+          "description": "Password for jenkins server",
+          "position":    6,
+          "group":       "connection"
         },
         "use_ssl": {
           "label":       "Use SSL?",
           "required":    true,
           "type":        "Boolean",
           "value":       false,
-          "description": "Use https when talking to Jenkins"
+          "description": "Use https when talking to Jenkins",
+          "position":    3,
+          "group":       "connection"
         },
         "web_path": {
           "label":       "Web Path",
           "required":    false,
           "type":        "String",
           "value":       "",
-          "description": "Path of the Jenkins application on the server"
+          "description": "Path of the Jenkins application on the server",
+          "position":    4,
+          "group":       "connection"
         }
       }
     }
@@ -71,112 +83,142 @@
             "required":    true,
             "type":        "String",
             "value":       "localhost",
-            "description": "Hostname of the Jenkins server"
+            "description": "Hostname of the Jenkins server",
+            "position":    1,
+            "group":       "connection"
           },
           "port": {
             "label":       "Port",
             "required":    false,
             "type":        "Integer",
             "value":       8080,
-            "description": "Port Jenkins is running on"
+            "description": "Port Jenkins is running on",
+            "position":    2,
+            "group":       "connection"
           },
           "job": {
             "label":       "Job",
             "required":    true,
             "type":        "String",
             "value":       "",
-            "description": "Name of the Jenkins job"
+            "description": "Name of the Jenkins job",
+            "position":    3
           },
           "username": {
             "label":       "Username",
             "required":    false,
             "type":        "String",
             "value":       "",
-            "description": "Username for jenkins server"
+            "description": "Username for jenkins server",
+            "position":    6,
+            "group":       "connection"
           },
           "password": {
             "label":       "Password",
             "required":    false,
             "type":        "Password",
             "value":       "",
-            "description": "Password for jenkins server"
+            "description": "Password for jenkins server",
+            "position":    7,
+            "group":       "connection"
           },
           "use_ssl": {
             "label":       "Use SSL?",
             "required":    true,
             "type":        "Boolean",
             "value":       false,
-            "description": "Use https when talking to Jenkins"
+            "description": "Use https when talking to Jenkins",
+            "position":    4,
+            "group":       "connection"
           },
           "web_path": {
             "label":       "Web Path",
             "required":    false,
             "type":        "String",
             "value":       "",
-            "description": "Path of the Jenkins application on the server"
+            "description": "Path of the Jenkins application on the server",
+            "position":    5,
+            "group":       "connection"
           },
           "scm_url": {
             "label":       "SCM URL",
             "required":    false,
             "type":        "Url",
             "value":       "",
-            "description": "Url of the source code repository"
+            "description": "Url of the source code repository",
+            "position":    8,
+            "group":       "create"
           },
           "parameters": {
             "label":       "Parameters",
             "required":    false,
             "type":        "Array",
             "value":       [],
-            "description": "Parameters to pass to the job. Name=value formatted."
+            "description": "Parameters to pass to the job. Name=value formatted.",
+            "position":    9
           },
           "user_defined_axes": {
             "label":       "User Defined Axes",
             "required":    false,
             "type":        "Array",
             "value":       [],
-            "description": "User defined axes used for a configuration matrix project"
+            "description": "User defined axes used for a configuration matrix project",
+            "position":    10,
+            "group":       "create"
           },
           "label_axes": {
             "label":       "Label Axes",
             "required":    false,
             "type":        "Array",
             "value":       [],
-            "description": "Labels for a configuration matrix project"
+            "description": "Labels for a configuration matrix project",
+            "position":    11,
+            "group":       "create"
           },
           "steps": {
             "label":       "Steps",
             "required":    false,
             "type":        "Array",
             "value":       [],
-            "description": "Set of steps to be executed by Jenkins"
+            "description": "Set of steps to be executed by Jenkins",
+            "position":    12,
+            "group":       "create"
           },
           "override_existing": {
             "label":       "Override Existing?",
             "required":    true,
             "type":        "Boolean",
             "value":       false,
-            "description": "Overwrite existing jobs, or create if it does not exist"
+            "description": "Overwrite existing jobs, or create if it does not exist",
+            "position":    13,
+            "group":       "create"
           },
           "fail_on_unstable": {
             "label":       "Fail on UNSTABLE",
             "required":    false,
             "type":        "Boolean",
             "value":       false,
-            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
+            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)",
+            "position":    14,
+            "group":       "advanced"
           },
           "build_start_timeout": {
             "label":       "Build Start Timeout",
             "required":    false,
             "type":        "Integer",
             "value":       60,
-            "description": "How long to wait for Jenkins to start building"
+            "description": "How long to wait for Jenkins to start building",
+            "position":    15,
+            "group":       "advanced"
           },
           "cancel_on_build_start_timeout": {
             "label":       "Cancel on Build Start Timeout?",
             "required":    false,
             "type":        "Boolean",
             "value":       true,
-            "description": "Attempt to cancel the build if Jenkins doesn't start building within the timeout"
+            "description": "Attempt to cancel the build if Jenkins doesn't start building within the timeout",
+            "position":    16,
+            "group":       "advanced"
           }
         },
         "outputs": {
@@ -198,56 +240,71 @@
             "required":    true,
             "type":        "String",
             "value":       "localhost",
-            "description": "Hostname of the Jenkins server"
+            "description": "Hostname of the Jenkins server",
+            "position":    1,
+            "group":       "connection"
           },
           "port": {
             "label":       "Port",
             "required":    false,
             "type":        "Integer",
             "value":       8080,
-            "description": "Port Jenkins is running on"
+            "description": "Port Jenkins is running on",
+            "position":    2,
+            "group":       "connection"
           },
           "job": {
             "label":       "Job",
             "required":    true,
             "type":        "String",
             "value":       "",
-            "description": "Name of the Jenkins job"
+            "description": "Name of the Jenkins job",
+            "position":    3
           },
           "username": {
             "label":       "Username",
             "required":    false,
             "type":        "String",
             "value":       "",
-            "description": "Username for Jenkins server"
+            "description": "Username for Jenkins server",
+            "position":    6,
+            "group":       "connection"
           },
           "password": {
             "label":       "Password",
             "required":    false,
             "type":        "Password",
             "value":       "",
-            "description": "Password for Jenkins server"
+            "description": "Password for Jenkins server",
+            "position":    7,
+            "group":       "connection"
           },
           "use_ssl": {
             "label":       "Use SSL?",
             "required":    true,
             "type":        "Boolean",
             "value":       false,
-            "description": "Use https when talking to Jenkins"
+            "description": "Use https when talking to Jenkins",
+            "position":    4,
+            "group":       "connection"
           },
           "web_path": {
             "label":       "Web Path",
             "required":    false,
             "type":        "String",
             "value":       "",
-            "description": "Path of the Jenkins application on the server"
+            "description": "Path of the Jenkins application on the server",
+            "position":    5,
+            "group":       "connection"
           },
           "fail_on_unstable": {
             "label":       "Fail on UNSTABLE?",
             "required":    false,
             "type":        "Boolean",
             "value":       false,
-            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)"
+            "description": "If Jenkins reports an unstable build, treat that as a failure (normally treated as success)",
+            "position":    8,
+            "group":       "advanced"
           }
         },
         "outputs": {
@@ -257,5 +314,24 @@
         }
       }
     }
-  ]
+  ],
+  "groups": {
+    "connection": {
+      "label": "Jenkins Connection",
+      "description": "How to connect to Jenkins",
+      "position": 2
+    },
+    "create": {
+      "label": "Create/Update Job",
+      "description": "Parameters to create or update a job on Jenkins",
+      "position": 3,
+      "expanded": false
+    },
+    "advanced": {
+      "label": "Advanced Settings",
+      "description": "Tweak the task",
+      "position": 4,
+      "expanded": false
+    }
+  }
 }
