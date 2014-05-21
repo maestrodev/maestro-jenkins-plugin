@@ -8,3 +8,4 @@ package
 maestro-*-plugin-*.zip
 tmp/
 manifest.json
+/coverage/

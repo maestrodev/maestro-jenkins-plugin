@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-require 'rubygems'
+require 'simplecov'
+SimpleCov.start
+
 require 'rspec'
 require 'mocha/api'
 require 'webmock/rspec'

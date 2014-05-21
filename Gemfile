@@ -12,8 +12,8 @@ group :development do
 end
 
 group :test do
-  gem 'rspec'
-  gem 'rcov', '0.9.11'
+  gem 'rspec', :require => false
+  gem 'simplecov', :require => false
   gem 'mocha', '>= 0.13.0', :require => false
-  gem 'webmock'
+  gem 'webmock', :require => false
 end
