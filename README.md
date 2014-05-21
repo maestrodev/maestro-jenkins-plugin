@@ -4,7 +4,7 @@
 Maestro plugin providing a "task" to control jenkins. This
 plugin is a Ruby-based deployable that gets delivered as a Zip file.
 
-Documentation at <http://www.maestrodev.com/docs/users-guide/executing-jenkins-jobs/>
+Documentation at [Executing Jenkins Jobs](https://docs.maestrodev.com/display/MAESTRO/Executing+Jenkins+Jobs)
 
 
 ## License
