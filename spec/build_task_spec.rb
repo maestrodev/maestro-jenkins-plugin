@@ -66,7 +66,6 @@ describe MaestroDev::Plugin::JenkinsWorker do
 
       subject.perform(:build, workitem)
       subject.error.should be_nil
-      subject.output.should be_nil
     end
 
     context "when building a parameterized job" do
@@ -79,7 +78,6 @@ describe MaestroDev::Plugin::JenkinsWorker do
         subject.perform(:build, workitem)
 
         subject.error.should be_nil
-        subject.output.should be_nil
       end
     end
 
@@ -112,7 +110,6 @@ describe MaestroDev::Plugin::JenkinsWorker do
         subject.perform(:build, workitem)
 
         subject.error.should be_nil
-        subject.output.should be_nil
       end
     end
 
@@ -172,7 +169,6 @@ describe MaestroDev::Plugin::JenkinsWorker do
       subject.perform(:build, workitem)
 
       subject.error.should start_with('Jenkins job failed')
-      subject.output.should be_nil
     end
 
   end

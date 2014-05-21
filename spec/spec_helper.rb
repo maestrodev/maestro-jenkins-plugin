@@ -32,15 +32,7 @@ RSpec.configure do |config|
   config.mock_framework = :mocha
   
   config.before(:each) do
-    MaestroDev::Plugin::JenkinsWorker.mock!
-    @workitem = {'fields' => {
-      'host' => 'localhost',
-      "port" => '8080',
-      'web_path' => '',
-      'job' => 'Buildaroo',
-      'scm_url' => 'git://github.com/maestrodev/CEE.git',
-      'steps' => ['bundle', 'rake'],
-      'override_existing' => true}}
+    Maestro::MaestroWorker.mock!
     subject.query_interval = 1
   end
   
