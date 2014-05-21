@@ -92,7 +92,8 @@ module MaestroDev
 
         # check if we have been called by a jenkins notifier POST
         if job_data = read_output_value('jenkins')
-          build_number = job_data and job_data['build'] and job_data['build']['number']
+          build_number = job_data && job_data['build'] && job_data['build']['number']
+          write_output("Got Jenkins build number from context: #{build_number}") if build_number
         end
 
         # otherwise fetch data from jenkins
@@ -102,7 +103,7 @@ module MaestroDev
           last_completed_build = job_data['lastCompletedBuild']
 
           last_output_build_number = read_output_value('build_number')
-          build_number = last_completed_build and last_completed_build['number']
+          build_number = last_completed_build && last_completed_build['number']
 
           if build_number.nil? or build_number == last_output_build_number
             write_output("\nNo new completed build found for job #{@job}")
