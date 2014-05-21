@@ -89,22 +89,30 @@ module MaestroDev
         job_exists = @client.job.exists?(@job)
 
         raise PluginError, "Job '#{@job}' Not Found" unless job_exists
-        job_data = @client.job.list_details(@job)
 
-        raise PluginError, "Data for Job '#{@job}' Not Found" unless job_data
+        # check if we have been called by a jenkins notifier POST
+        if job_data = read_output_value('jenkins')
+          build_number = job_data and job_data['build'] and job_data['build']['number']
+        end
 
-        last_completed_build = job_data['lastCompletedBuild']
-        last_output_build_number = read_output_value('build_number')
-        build_number = (last_completed_build ?  last_completed_build['number'] : nil)
+        # otherwise fetch data from jenkins
+        if build_number.nil?
+          job_data = @client.job.list_details(@job)
+          raise PluginError, "Data for Job '#{@job}' Not Found" unless job_data
+          last_completed_build = job_data['lastCompletedBuild']
+
+          last_output_build_number = read_output_value('build_number')
+          build_number = last_completed_build and last_completed_build['number']
+
+          if build_number.nil? or build_number == last_output_build_number
+            write_output("\nNo new completed build found for job #{@job}")
+            not_needed
+            return
+          end
+        end
 
         save_output_value('build_number', build_number) if build_number
 
-        if build_number.nil? or build_number == last_output_build_number
-          write_output("\nNo new completed build found for job #{@job}")
-          not_needed
-          return
-        end
-        
         write_output("\nLast completed build number: #{build_number}")
 
         process_job_complete(build_number)
