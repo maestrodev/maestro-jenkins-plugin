@@ -54,7 +54,7 @@ describe MaestroDev::Plugin::JenkinsWorker do
     end
 
     context "when the last build number has not changed since last run" do
-      let(:fields) { super().merge({'__previous_context_outputs__' => {'build_number' => 22}}) }
+      let(:fields) { super().merge({Maestro::MaestroWorker::PREVIOUS_CONTEXT_OUTPUTS_META => {'build_number' => 22}}) }
 
       it "should send a not_needed message" do
         # Request for jenkins root, used to get version
