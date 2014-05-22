@@ -297,6 +297,15 @@
             "position":    5,
             "group":       "connection"
           },
+          "additional_fields": {
+            "label":       "Additional Fields",
+            "required":    false,
+            "type":        "Array",
+            "value":       "",
+            "description": "Additional fields from the Jenkins build result to populate in the Composition context",
+            "position":    9,
+            "group":       "advanced"
+          },
           "fail_on_unstable": {
             "label":       "Fail on UNSTABLE?",
             "required":    false,

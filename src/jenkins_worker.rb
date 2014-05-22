@@ -117,7 +117,7 @@ module MaestroDev
 
         save_output_value('build_number', build_number) if build_number
 
-        process_job_complete(build_number)
+        process_job_complete(build_number, context_inputs)
       end
 
       ###########
@@ -125,12 +125,22 @@ module MaestroDev
       ###########
       private
 
-      def process_job_complete(build_number)
+      def process_job_complete(build_number, context_inputs = {})
         begin
           details = @client.job.get_build_details(@job, build_number)
         rescue JenkinsApi::Exceptions::NotFoundException => e
           write_output("\nJenkins job #{@job} build #{build_number} details not found.")
           return false
+        end
+
+        additional_fields = get_field('additional_fields')
+        if additional_fields and additional_fields.length > 0
+          jenkins_meta = context_inputs['jenkins'] || {}
+          jenkins_meta['build'] ||= {}
+          additional_fields.each { |field|
+            jenkins_meta['build'][field] = details[field]
+          }
+          save_output_value('jenkins', jenkins_meta)
         end
 
         jenkins_result = details['result']
