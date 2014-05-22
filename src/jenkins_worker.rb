@@ -91,7 +91,8 @@ module MaestroDev
         raise PluginError, "Job '#{@job}' Not Found" unless job_exists
 
         # check if we have been called by a jenkins notifier POST
-        if job_data = read_output_value('jenkins')
+        context_inputs = get_field('__context_inputs__') || {}
+        if job_data = context_inputs['jenkins']
           build_number = job_data && job_data['build'] && job_data['build']['number']
           write_output("Got Jenkins build number from context: #{build_number}") if build_number
         end
