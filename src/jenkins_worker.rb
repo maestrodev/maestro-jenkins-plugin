@@ -94,7 +94,7 @@ module MaestroDev
         context_inputs = get_field('__context_inputs__') || {}
         if job_data = context_inputs['jenkins']
           build_number = job_data && job_data['build'] && job_data['build']['number']
-          write_output("Got Jenkins build number from context: #{build_number}") if build_number
+          write_output("\nGot Jenkins build number from context: #{build_number}") if build_number
         end
 
         # otherwise fetch data from jenkins
@@ -106,6 +106,8 @@ module MaestroDev
           last_output_build_number = read_output_value('build_number')
           build_number = last_completed_build && last_completed_build['number']
 
+          write_output("\nLast completed build number: #{build_number}")
+
           if build_number.nil? or build_number == last_output_build_number
             write_output("\nNo new completed build found for job #{@job}")
             not_needed
@@ -114,8 +116,6 @@ module MaestroDev
         end
 
         save_output_value('build_number', build_number) if build_number
-
-        write_output("\nLast completed build number: #{build_number}")
 
         process_job_complete(build_number)
       end
